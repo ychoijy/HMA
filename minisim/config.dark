@@ -1,0 +1,12 @@
+# Memory parameters
+#defRankSize 1048576 # 1MB ranks
+#defRankSize 33554432 # 32MB ranks
+#defRankSize 1073741824 # 1GB ranks
+defRankSize 536870912 # 0.5GB ranks
+#defRankSize 2147483648 # 2GB ranks
+
+# Zones
+zone dram
+zone pcm
+ratio 0.8
+#ratio 0.8

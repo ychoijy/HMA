@@ -1,0 +1,1 @@
+/home/ychoijy/marss.dramsim/qemu/qemu-system-x86_64 -m 4096 -kernel /home/ychoijy/Downloads/linux3.12.24/arch/x86/boot/bzImage -initrd /home/ychoijy/image/ramdisk.img -append root=/dev/ram init=/bin/ash -L /home/ychoijy/marss.dramsim/qemu/pc-bios/ -simconfig /home/ychoijy/marss.dramsim/simconfig

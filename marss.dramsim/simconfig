@@ -1,0 +1,6 @@
+-machine single_core
+-corefreq 2700000000
+-dramsim-pwd              /home/ychoijy/HMA/DRAMSim2
+-dramsim-device-ini-file  ini/my_dram.ini
+-dramsim-system-ini-file  system.ini
+-dramsim-results-dir-name benchmark

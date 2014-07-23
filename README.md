@@ -12,6 +12,7 @@ Ubuntu환경에서 실험환경 구축하기
   2. marss.dramsim & DRAMSim2 를 git을 통해 다운로드.
 
     git clone https://github.com/dramninjasUMD/marss.dramsim.git
+
     git clone git://github.com/dramninjasUMD/DRAMSim2.git
   
   

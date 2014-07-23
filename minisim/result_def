@@ -1,0 +1,213 @@
+=================================================================================================
+MINISIM 7.0 NOEC Module
+=================================================================================================
+Configuration file: config.dark
+[NORMAL ALLOCATION]
+CPU 2.67 GHz, MEM 0.67 GHz, cpu_ratio 4.00
+BUS_WIDTH_BYTES 8 (bytes) CHIP_WIDTH 8 (bits)
+pageSize 4096 (bytes) cacheBlockSize 64 (bytes) cacheBlocksPerPage 64
+tlbSize 128 (entries per core) TLB_HIT_DELAY 2 (cycles) TLB_MISS_DELAY 30 (cycles)
+DISK_LATENCY 100000 (ns or 266800 CPU cycles)
+memtypes 0 and 2 (ratio 0.8000)
+-DPAGESTATS=1
+-DXFER_DEBUG=0 -DSWAP_OVERHEAD=1
+-DMONITOR=0 -DMONITORED=133266 -DTIME_DEBUG=0 -DVALIDATE=1
+-DSWAPPING=1 -DCH=4 -DCLOSE_PAGE=1
+DRAM_MULTIPLIER 1.00
+Searching for workload traces at: ./test/def
+ * trace file: ./test/def/core0.trc
+Total number of CPU cores: 1
+&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+Memory System
+&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+Total Channels: 1 | Total Ranks: 5 | Total Banks: 40 | Row Size: 4096 | Cols/Row 512
+MEM_SIZE: 4096.00 MB [0x0000000000000000 - 0x00000000ffffffff] (Rank Prop: 0.800)
++ 4 DRAM (rank_size 512.00MB, bank_size 64.00MB) (Rows 16384)
+  DRAM (type 0) power_and_timing (x8 DQ 8 DQS 2 DQM 1)
+  VDD 1.50 VDDR 1.50 VDDW 1.50 VDDmax 1.50 tCK_ns 1.50 DEV_GHZ 0.67 
+  DD0 110 DD2P 40 DD2N 65 DD3P 40 DD3N 62 DD4W 220 DD4R 200 DD5A 240
+  cell_independent_memcyc tCMD 1 tDQ 1 tFAW 20 tCL 10 tCWD 7 tWR 10
+  cell_dependent_memcyc tRCD 10 tRP 10 tRDDact 4 tRDDpre 4 tRFCmin 74 tRC 33 tRAS 23 tRFCmin:74 tREFI:3906.250000
+
++ 1 _PCM (rank_size 2048.00MB, bank_size 256.00MB) (Rows 65536)
+  _PCM (type 2) power_and_timing (x8 DQ 8 DQS 2 DQM 1)
+  VDD 1.50 VDDR 1.00 VDDW 1.60 VDDmax 1.50 tCK_ns 1.50 DEV_GHZ 0.67 
+  DD0 242 DD2P 40 DD2N 65 DD3P 40 DD3N 62 DD4W 220 DD4R 200 DD5A 0
+  cell_independent_memcyc tCMD 1 tDQ 1 tFAW 20 tCL 10 tCWD 7 tWR 10
+  cell_dependent_memcyc tRCD 37 tRP 100 tRDDact 3 tRDDpre 18 tRFCmin 0 tRC 150 tRAS 50 tRFCmin:0 tREFI:0.000000
+
+* zoneLimit 4 phantomZone 6442450944 (0x0000000180000000)
+CH  0 RK  0 (id  0) BK  0 (id  0) (ZN  0) [0x0000000000000000 - 0x0000000003ffffff] [DRAM]
+CH  0 RK  0 (id  0) BK  1 (id  1) (ZN  0) [0x0000000004000000 - 0x0000000007ffffff] [DRAM]
+CH  0 RK  0 (id  0) BK  2 (id  2) (ZN  0) [0x0000000008000000 - 0x000000000bffffff] [DRAM]
+CH  0 RK  0 (id  0) BK  3 (id  3) (ZN  0) [0x000000000c000000 - 0x000000000fffffff] [DRAM]
+CH  0 RK  0 (id  0) BK  4 (id  4) (ZN  0) [0x0000000010000000 - 0x0000000013ffffff] [DRAM]
+CH  0 RK  0 (id  0) BK  5 (id  5) (ZN  0) [0x0000000014000000 - 0x0000000017ffffff] [DRAM]
+CH  0 RK  0 (id  0) BK  6 (id  6) (ZN  0) [0x0000000018000000 - 0x000000001bffffff] [DRAM]
+CH  0 RK  0 (id  0) BK  7 (id  7) (ZN  0) [0x000000001c000000 - 0x000000001fffffff] [DRAM]
+CH  0 RK  1 (id  1) BK  0 (id  8) (ZN  0) [0x0000000020000000 - 0x0000000023ffffff] [DRAM]
+CH  0 RK  1 (id  1) BK  1 (id  9) (ZN  0) [0x0000000024000000 - 0x0000000027ffffff] [DRAM]
+CH  0 RK  1 (id  1) BK  2 (id 10) (ZN  0) [0x0000000028000000 - 0x000000002bffffff] [DRAM]
+CH  0 RK  1 (id  1) BK  3 (id 11) (ZN  0) [0x000000002c000000 - 0x000000002fffffff] [DRAM]
+CH  0 RK  1 (id  1) BK  4 (id 12) (ZN  0) [0x0000000030000000 - 0x0000000033ffffff] [DRAM]
+CH  0 RK  1 (id  1) BK  5 (id 13) (ZN  0) [0x0000000034000000 - 0x0000000037ffffff] [DRAM]
+CH  0 RK  1 (id  1) BK  6 (id 14) (ZN  0) [0x0000000038000000 - 0x000000003bffffff] [DRAM]
+CH  0 RK  1 (id  1) BK  7 (id 15) (ZN  0) [0x000000003c000000 - 0x000000003fffffff] [DRAM]
+CH  0 RK  2 (id  2) BK  0 (id 16) (ZN  0) [0x0000000040000000 - 0x0000000043ffffff] [DRAM]
+CH  0 RK  2 (id  2) BK  1 (id 17) (ZN  0) [0x0000000044000000 - 0x0000000047ffffff] [DRAM]
+CH  0 RK  2 (id  2) BK  2 (id 18) (ZN  0) [0x0000000048000000 - 0x000000004bffffff] [DRAM]
+CH  0 RK  2 (id  2) BK  3 (id 19) (ZN  0) [0x000000004c000000 - 0x000000004fffffff] [DRAM]
+CH  0 RK  2 (id  2) BK  4 (id 20) (ZN  0) [0x0000000050000000 - 0x0000000053ffffff] [DRAM]
+CH  0 RK  2 (id  2) BK  5 (id 21) (ZN  0) [0x0000000054000000 - 0x0000000057ffffff] [DRAM]
+CH  0 RK  2 (id  2) BK  6 (id 22) (ZN  0) [0x0000000058000000 - 0x000000005bffffff] [DRAM]
+CH  0 RK  2 (id  2) BK  7 (id 23) (ZN  0) [0x000000005c000000 - 0x000000005fffffff] [DRAM]
+CH  0 RK  3 (id  3) BK  0 (id 24) (ZN  0) [0x0000000060000000 - 0x0000000063ffffff] [DRAM]
+CH  0 RK  3 (id  3) BK  1 (id 25) (ZN  0) [0x0000000064000000 - 0x0000000067ffffff] [DRAM]
+CH  0 RK  3 (id  3) BK  2 (id 26) (ZN  0) [0x0000000068000000 - 0x000000006bffffff] [DRAM]
+CH  0 RK  3 (id  3) BK  3 (id 27) (ZN  0) [0x000000006c000000 - 0x000000006fffffff] [DRAM]
+CH  0 RK  3 (id  3) BK  4 (id 28) (ZN  0) [0x0000000070000000 - 0x0000000073ffffff] [DRAM]
+CH  0 RK  3 (id  3) BK  5 (id 29) (ZN  0) [0x0000000074000000 - 0x0000000077ffffff] [DRAM]
+CH  0 RK  3 (id  3) BK  6 (id 30) (ZN  0) [0x0000000078000000 - 0x000000007bffffff] [DRAM]
+CH  0 RK  3 (id  3) BK  7 (id 31) (ZN  0) [0x000000007c000000 - 0x000000007fffffff] [DRAM]
+CH  0 RK  4 (id  4) BK  0 (id 32) (ZN  1) [0x0000000080000000 - 0x000000008fffffff] [_PCM]
+CH  0 RK  4 (id  4) BK  1 (id 33) (ZN  1) [0x0000000090000000 - 0x000000009fffffff] [_PCM]
+CH  0 RK  4 (id  4) BK  2 (id 34) (ZN  1) [0x00000000a0000000 - 0x00000000afffffff] [_PCM]
+CH  0 RK  4 (id  4) BK  3 (id 35) (ZN  1) [0x00000000b0000000 - 0x00000000bfffffff] [_PCM]
+CH  0 RK  4 (id  4) BK  4 (id 36) (ZN  1) [0x00000000c0000000 - 0x00000000cfffffff] [_PCM]
+CH  0 RK  4 (id  4) BK  5 (id 37) (ZN  1) [0x00000000d0000000 - 0x00000000dfffffff] [_PCM]
+CH  0 RK  4 (id  4) BK  6 (id 38) (ZN  1) [0x00000000e0000000 - 0x00000000efffffff] [_PCM]
+CH  0 RK  4 (id  4) BK  7 (id 39) (ZN  1) [0x00000000f0000000 - 0x00000000ffffffff] [_PCM]
+&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+ROUND-ROBIN ALLOC
+CH[0].pages =  1048576 [       0 to  1048575]
+One core finished (0 left)
+
+&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+Ch0->Rk0: accesses 7485 acts 7444 arrayWrites(blocks) 476416
+powerDownTransitions 2001 powerUpTransitions 2001
+{cycPPD 13052454.000000 | cycPSB 0 | cycAPD 0 | cycASB 1155679} CKEtotal 14208133.000000
+{cyc_RD 28364 | cyc_WR 1576 | cyc_RASsum 14205881}
+Avg MEM CYCLES between activations 477.00 mem cycles (CPU_RATIO 4.00) (tRC = 33 mem cyc)
+WRp: 0.0004 RDp: 0.0080 termWR: 0.0057 termRD: 0.0646 tACTavg: 477.00 BnkPre 0.92 CKElopre 1.00 CKEloact 0.00
+StatePower(mW) PPD 440.96 PSB 0.00 APD 0.00 ASB 60.52
+[mbchoi] f->DD3N:62.00 f->VDDmax:1.50 BnkPre:0.92 CKEact:1.00 fs:1.00 vs:1.00 chips:8
+Rk1: accesses 1655 acts 1601 arrayWrites(blocks) 102464
+powerDownTransitions 1312 powerUpTransitions 1312
+{cycPPD 13912276.000000 | cycPSB 0 | cycAPD 0 | cycASB 295857} CKEtotal 14208133.000000
+{cyc_RD 5224 | cyc_WR 1396 | cyc_RASsum 14203317}
+Avg MEM CYCLES between activations 2217.75 mem cycles (CPU_RATIO 4.00) (tRC = 33 mem cyc)
+WRp: 0.0004 RDp: 0.0015 termWR: 0.0058 termRD: 0.0711 tACTavg: 2217.75 BnkPre 0.98 CKElopre 1.00 CKEloact 0.00
+StatePower(mW) PPD 470.00 PSB 0.00 APD 0.00 ASB 15.49
+[mbchoi] f->DD3N:62.00 f->VDDmax:1.50 BnkPre:0.98 CKEact:1.00 fs:1.00 vs:1.00 chips:8
+Rk2: accesses 0 acts 0 arrayWrites(blocks) 0
+powerDownTransitions 0 powerUpTransitions 0
+{cycPPD 14208133.000000 | cycPSB 0 | cycAPD 0 | cycASB 0} CKEtotal 14208133.000000
+{cyc_RD 0 | cyc_WR 0 | cyc_RASsum 0}
+Avg MEM CYCLES between activations 0.00 mem cycles (CPU_RATIO 4.00) (tRC = 33 mem cyc)
+WRp: 0.0000 RDp: 0.0000 termWR: 0.0000 termRD: 0.0000 tACTavg: 0.00 BnkPre 1.00 CKElopre 1.00 CKEloact 0.00
+StatePower(mW) PPD 480.00 PSB 0.00 APD 0.00 ASB 0.00
+[mbchoi] f->DD3N:62.00 f->VDDmax:1.50 BnkPre:1.00 CKEact:0.00 fs:1.00 vs:1.00 chips:8
+Rk3: accesses 35196 acts 34096 arrayWrites(blocks) 2182144
+powerDownTransitions 13662 powerUpTransitions 13662
+{cycPPD 8403827.000000 | cycPSB 0 | cycAPD 0 | cycASB 5804306} CKEtotal 14208133.000000
+{cyc_RD 124984 | cyc_WR 15800 | cyc_RASsum 14206942}
+Avg MEM CYCLES between activations 104.00 mem cycles (CPU_RATIO 4.00) (tRC = 33 mem cyc)
+WRp: 0.0044 RDp: 0.0352 termWR: 0.0017 termRD: 0.0374 tACTavg: 104.00 BnkPre 0.59 CKElopre 1.00 CKEloact 0.00
+StatePower(mW) PPD 283.91 PSB 0.00 APD 0.00 ASB 303.94
+[mbchoi] f->DD3N:62.00 f->VDDmax:1.50 BnkPre:0.59 CKEact:1.00 fs:1.00 vs:1.00 chips:8
+Rk4: accesses 25566 acts 25385 arrayWrites(blocks) 776
+powerDownTransitions 24813 powerUpTransitions 24813
+{cycPPD 7982611.000000 | cycPSB 0 | cycAPD 0 | cycASB 6225522} CKEtotal 14208133.000000
+{cyc_RD 99160 | cyc_WR 3104 | cyc_RASsum 14207222}
+Avg MEM CYCLES between activations 139.75 mem cycles (CPU_RATIO 4.00) (tRC = 150 mem cyc)
+WRp: 0.0009 RDp: 0.0279 termWR: 0.0053 termRD: 0.0446 tACTavg: 139.75 BnkPre 0.56 CKElopre 1.00 CKEloact 0.00
+StatePower(mW) PPD 269.68 PSB 0.00 APD 0.00 ASB 326.00
+[mbchoi] f->DD3N:62.00 f->VDDmax:1.50 BnkPre:0.56 CKEact:1.00 fs:1.00 vs:1.00 chips:8
+&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+
+Power/Energy Breakdown
+
+Circuitry (W)
+PPD         1.944552777
+PSB         0.000000000
+APD         0.000000000
+ASB         0.705943196
+REF         0.161857536
+WR          0.011678144
+RD          0.120168484
+DQ          0.038314589
+termW       0.000000000
+termRDoth   0.264718980
+termWRoth   0.020325884
+-----------------------
+STATE(W)    2.812353509
+R/W/T(W)    0.455206081
+avgCirc(W)  3.267559590
+avgCirc(J)  0.017401020
+-----------------------
+MICRON_AVG_ACT(W) sec:0.0053253872 watts:3.2675595898 ARRAY_WATTS2.5194760281 ARRAY_ENERGY(J) 0.0134171853 TOT_ENERGY(J) 0.0308182053 TOT_POWER(W) 5.7870356179 ED: 0.0001641189 ED2: 0.0000008740
+DETAIL_AVG_ACT(W) 0.4425 ARRAY_ENERGY(J) 0.0023563 TOT_ENERGY(J) 0.0197574 TOT_POWER(W) 3.7100317 ED: 0.0001052 ED2: 0.0000006
+
+totalPowerDownTransitions 41788 totalPowerUpTransitions 41788
+
+=================================================================================================
+Runtime: 0.0053254 seconds: 14208133 CPU cycles
+
+MC.Total accesses 69908 CPU 69908 DMA 0 SB 0 NB 0 retired 6
+
+Access Breakdown
+CPU.CPU_reads       64433  92.17 %
+CPU.CPU_writes       5475   7.83 %
+DMA.page_fetches        0   0.00 %
+DMA.page_wbacks         0   0.00 %
+DMA.xfer_reads          0   0.00 %
+DMA.xfer_writes         0   0.00 %
+
+MC.rowMissBkOpen 0 rowMissBkClosed 68526 rowHit 1376 pageHitRatio (0.019685)
+MC.writeQueueHits 6
+
+ENDURANCE ****************************************************************************
+MC.zone0 most written cache line 165 times (PPN 510489 CBUID 32671296)
+MC.zone1 most written cache line 2 times (PPN 916595 CBUID 58662088)
+MC.most_writes_to_PCM: 2 times (PPN 916595)
+
+ZONE0: totZoneW 2761024 zoneWpages 1147 zoneMWBlock 165 zoneSize(bytes) 2147483648
+ZONE1: totZoneW 776 zoneWpages 27 zoneMWBlock 2 zoneSize(bytes) 2147483648
+TAW 776 WPP 28.74 WPblock 0.45 MWblock 2 pcmCapacity(bytes) 2147483648 alpha 0.2245
+reqE(5yrs) 3049645 logE(5yrs) 6.48
+reqE(3yrs) 1829787 logE(3yrs) 6.26
+**************************************************************************************
+
+MC.avgLatQ(ns)   zone0 read(ns) 50.5997 write(ns) 62.9685 overall(ns) 52.0990
+MC.avgLatQ(ns)   zone1 read(ns) 86.2069 write(ns) 110.1949 overall(ns) 86.9565
+MC.avgLatNoQ(ns) zone0 read(ns) 37.1064 write(ns) 34.4828 overall(ns) 36.7316
+MC.avgLatNoQ(ns) zone1 read(ns) 77.2114 write(ns) 60.7196 overall(ns) 76.4618
+
+Row Hit Rates
+           row_hit_rate      hits    misses      total
+zone0.cpur   0.000000          0      39643      39643
+zone0.cpuw   0.254635       1195       3498       4693
+zone0.sb     0.000000          0          0          0
+zone0.nb     0.000000          0          0          0
+
+           row_hit_rate      hits    misses      total
+zone1.cpur   0.000000          0      24790      24790
+zone1.cpuw   0.233247        181        595        776
+zone1.sb     0.000000          0          0          0
+zone1.nb     0.000000          0          0          0
+
+Total_retired_accesses 6
+
+CPU.TLB_hit_ratio 0.939134 hits 65653 misses 4255
+CPU.Miss_count: 69908 0.921683 read_ratio 0.078317 write_ratio
+
+PT.page_faults 1572 2.248670 % of CPU misses
+PT.Pages allocated: 1572
+PT.Memory footprint (MB): 6.140625
+PT.Memory occupation: 0.15 percent
+
+Core#   runtime   proc(%) mem/IO(%)        ini          fin     p_faults     accesses      tlb_hit     tlb_miss avg_lat(ns)
+  0   0.0053254    20.51    79.49           10     14208121         1572        69908        65653         4255    59.16
+
+PT.locked_pages 0
+=================================================================================================

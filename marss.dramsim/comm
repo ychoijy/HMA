@@ -1,0 +1,12 @@
+make libdramsim.so
+
+scons dramsim=/home/mbchoi/tool/marss.dramsim/DRAMSim2 debug=1
+
+ldd qemu/qemu-system-x86_64 | grep dramsim
+
+/home/mbchoi/tool/marss.dramsim/qemu/qemu-system-x86_64 -m 4096 -kernel /home/mbchoi/practice/image/bzImage -initrd /home/mbchoi/practice/image/ramdisk.img -append "root=/dev/ram init=/bin/ash" -L /home/mbchoi/tool/marss.dramsim/qemu/pc-bios/ -simconfig /home/mbchoi/tool/marss.dramsim/simconfig 
+
+/home/mbchoi/tool/marss.dramsim/qemu/qemu-system-x86_64 -m 4096 -kernel /home/mbchoi/source/linux-2.6.32/arch/x86/boot/bzImage -initrd /home/mbchoi/practice/image/ramdisk.img -append "root=/dev/ram init=/bin/ash" -L /home/mbchoi/tool/marss.dramsim/qemu/pc-bios/ -simconfig /home/mbchoi/tool/marss.dramsim/simconfig 
+
+
+/home/mbchoi/tool/marss.dramsim/qemu/qemu-system-x86_64 -m 4096 -kernel /home/mbchoi/source/linux-2.6.32.mbchoi-3/arch/x86/boot/bzImage -initrd /home/mbchoi/practice/image/ramdisk.img -append "root=/dev/ram init=/bin/ash" -L /home/mbchoi/tool/marss.dramsim/qemu/pc-bios/ -simconfig /home/mbchoi/tool/marss.dramsim/simconfig 

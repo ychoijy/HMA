@@ -1,0 +1,100 @@
+#####################################################################
+# Compiling the simulator
+I'm using g++ (GCC) 4.1.2 20080704 (Red Hat 4.1.2-48)
+
+make um # builds a version of the simulator (UM) that implements a simple memory system with no special management
+
+#####################################################################
+# Configuring the simulator, create a configuration file (e.g., config.dark) like this
+
+# number of bytes in a default DRAM rank (it will be used to calculate the sizes of ranks and banks)
+defRankSize 1073741824 # equivalent to 1GB rank of DRAM or 4GB of PCM!
+
+# first time that zone appears: defines the type of memory in zone 1 (dram or pcm)
+zone dram
+
+# second time that zone appears: defines the type of memory in zone 2 (dram or pcm)
+zone pcm
+
+# ratio of ranks assigned to zone 1 and zone 2 (e.g., 0.5 means half of the ranks is of type of zone 1)
+ratio 0.5
+
+#####################################################################
+# Trace organization
+
+The number of traces defines the number of "cores" submitting requests
+to the simulator.  They should be in a  directory that represents your
+workoad, and their names should be coreX.trc, where X is the number of
+the core.
+
+core0.trc  core1.trc  core2.trc  core3.trc
+
+#####################################################################
+# Trace format TIMESTAMP_IN_CYCLES, PHYSICAL_ADDRESS, OP_TYPE (R/W), e.g.,
+
+0 536912320 R
+31 536912384 R
+50 853337344 W
+84 821337344 R
+84 837337344 W
+104 821337408 R
+
+#####################################################################
+# To run the simulator
+./UM config.dark test/m0-02MB/
+
+#####################################################################
+
+#K_SIZE()arameters to configure the memory system are hardcoded mainly
+into these two files (makefile and base.hh)
+
+###################################
+# in makefile
+XFLAGS := ${XFLAGS} -DCH=4
+XFLAGS := ${XFLAGS} -D_PCM_MULTIPLIER=4.0
+
+###################################
+# in base.hh
+#define MAXCORES 16 // maximum number of cores in all CPUs
+
+#define CHIP_WIDTH 8 // 8 bits per chip (DQ pins = x8 mode)
+
+#define CHIPS_PRK 8 // the total size of a row
+
+#if 1 // 8KB pages and row buffer
+static const unsigned pageSize = 8192; // bytes (8KB pages)
+static const unsigned pageSizeBits = 13; // log2(pageSize)  
+#else // 4KB pages and row buffer
+static const unsigned pageSize = 4096; // bytes (4KB pages)
+static const unsigned pageSizeBits = 12; // log2(pageSize)  
+#endif
+
+static const unsigned CHIP_COL_SIZE  = CHIP_WIDTH; // for every chip the column size is the chip width
+
+static const unsigned ROW_SIZE  = CHIP_ROW_SIZE * CHIPS_PRK; // in bytes
+
+static const byte COL_SIZE  = (CHIP_WIDTH * CHIPS_PRK) / 8; // in bytes
+
+static const byte BANKS_PRK = (BANKS_PCH/RANKS_PCH); // banks per rank
+
+static const byte NBANKS = (BANKS_PCH*NCHANNELS); // absolute total number of banks
+
+#define DRAM_ROWS_PER_BANK(x) ((x*RANKS_PCH)/(ROW_SIZE*BANKS_PCH)) 
+
+#define BUS_WIDTH_BYTES 8 // 64-bit channel
+
+static const unsigned cacheBlockSize = 64; // bytes
+
+static const unsigned cacheBlockSizeBits = 6; // log2(cacheBlockSize)
+
+static const unsigned cacheBlocksPerPage = pageSize / cacheBlockSize; // pageSize / 64-byte cache blocks
+
+static const unsigned cacheBlocksPerRow = ROW_SIZE / cacheBlockSize; // 4KB or 8KB / 64-byte cache blocks
+
+static const byte COL_SIZE  = (CHIP_WIDTH * CHIPS_PRK) / 8; // in bytes
+
+static const byte BANKS_PRK = (BANKS_PCH/RANKS_PCH); // banks per rank
+
+static const byte NBANKS = (BANKS_PCH*NCHANNELS); // absolute total number of banks
+#####################################################################
+Have fun! :-)
