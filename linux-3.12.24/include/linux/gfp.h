@@ -264,10 +264,15 @@ static inline enum zone_type gfp_zone(gfp_t flags)
 #ifdef CONFIG_ZONE_DMA
 	if (flags & __GFP_DMA)
 		return ZONE_DMA;
-#elif CONFIG_ZONE_DMA32
+#endif
+#ifdef CONFIG_ZONE_DMA32
 	if (flags & __GFP_DMA32)
 		return ZONE_DMA32;
 #endif
+	if ((flags & (__GFP_HIGHMEM | __GFP_MOVABLE)) == (__GFP_HIGHMEM | __GFP_MOVABLE))
+		return ZONE_MOVABLE;
+
+
 #ifdef CONFIG_HIGHMEM
 	if (flags & __GFP_HIGHMEM)
 		return ZONE_HIGMEM;
@@ -277,10 +282,7 @@ static inline enum zone_type gfp_zone(gfp_t flags)
 		return ZONE_PCM;
 	}
 
-	if ((flags & (__GFP_HIGHMEM | __GFP_MOVABLE)) == (__GFP_HIGHMEM | __GFP_MOVABLE))
-		return ZONE_MOVABLE;
-
-
+	return ZONE_NORMAL;
 	/*
 	enum zone_type z;
 	int bit = (__force int) (flags & GFP_ZONEMASK);
