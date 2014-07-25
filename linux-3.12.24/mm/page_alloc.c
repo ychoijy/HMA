@@ -201,6 +201,9 @@ static char * const zone_names[MAX_NR_ZONES] = {
 #ifdef CONFIG_HIGHMEM
 	 "HighMem",
 #endif
+	//ychoijy
+	 "PCM",
+	//eychoijy
 	 "Movable",
 };
 

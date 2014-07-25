@@ -309,6 +309,10 @@ enum zone_type {
 	 */
 	ZONE_HIGHMEM,
 #endif
+	//ychoijy
+	ZONE_PCM,
+	//eychoijy
+
 	ZONE_MOVABLE,
 	__MAX_NR_ZONES
 };
@@ -874,7 +878,7 @@ static inline int is_highmem_idx(enum zone_type idx)
 }
 
 /**
- * is_highmem - helper function to quickly check if a struct zone is a 
+ * is_highmem - helper function to quickly check if a struct zone is a
  *              highmem zone or not.  This is an attempt to keep references
  *              to ZONE_{DMA/NORMAL/HIGHMEM/etc} in general code to a minimum.
  * @zone - pointer to struct zone variable

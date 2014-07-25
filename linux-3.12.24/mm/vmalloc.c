@@ -1458,7 +1458,7 @@ static void __vunmap(const void *addr, int deallocate_pages)
 	kfree(area);
 	return;
 }
- 
+
 /**
  *	vfree  -  release memory allocated by vmalloc()
  *	@addr:		memory base address
@@ -1585,16 +1585,22 @@ static void *__vmalloc_area_node(struct vm_struct *area, gfp_t gfp_mask,
 		if (unlikely(!page)) {
 			/* Successfully allocated i pages, free them in __vunmap() */
 			area->nr_pages = i;
+			printk("%s:%d fail\n", __func__, __LINE__);
 			goto fail;
 		}
 		area->pages[i] = page;
 	}
 
-	if (map_vm_area(area, prot, &pages))
+	if (map_vm_area(area, prot, &pages)){
+		printk("%s:%d fail\n", __func__, __LINE__);
 		goto fail;
+	}
 	return area->addr;
 
 fail:
+	//ychoijy
+	printk("%s:%d fail\n", __func__, __LINE__);
+	//eychoijy
 	warn_alloc_failed(gfp_mask, order,
 			  "vmalloc: allocation failure, allocated %ld of %ld bytes\n",
 			  (area->nr_pages*PAGE_SIZE), area->size);
@@ -1655,6 +1661,9 @@ void *__vmalloc_node_range(unsigned long size, unsigned long align,
 	return addr;
 
 fail:
+	//ychoijy
+	printk("%s:%d fail\n", __func__, __LINE__);
+	//eychoijy
 	warn_alloc_failed(gfp_mask, 0,
 			  "vmalloc: allocation failure: %lu bytes\n",
 			  real_size);

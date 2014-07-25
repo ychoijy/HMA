@@ -35,6 +35,9 @@ struct vm_area_struct;
 #define ___GFP_NO_KSWAPD	0x400000u
 #define ___GFP_OTHER_NODE	0x800000u
 #define ___GFP_WRITE		0x1000000u
+//ychoijy
+#define ___GFP_PCM		0x2000000u
+//eychoijy
 /* If the above are modified, __GFP_BITS_SHIFT may need updating */
 
 /*
@@ -50,7 +53,10 @@ struct vm_area_struct;
 #define __GFP_HIGHMEM	((__force gfp_t)___GFP_HIGHMEM)
 #define __GFP_DMA32	((__force gfp_t)___GFP_DMA32)
 #define __GFP_MOVABLE	((__force gfp_t)___GFP_MOVABLE)  /* Page is movable */
-#define GFP_ZONEMASK	(__GFP_DMA|__GFP_HIGHMEM|__GFP_DMA32|__GFP_MOVABLE)
+//ychoijy
+#define __GFP_PCM	((__force gfp_t)___GFP_PCM)
+#define GFP_ZONEMASK	(__GFP_DMA|__GFP_HIGHMEM|__GFP_DMA32|__GFP_PCM|__GFP_MOVABLE)
+//eychoijy
 /*
  * Action modifiers - doesn't change the zoning
  *
@@ -99,7 +105,10 @@ struct vm_area_struct;
  */
 #define __GFP_NOTRACK_FALSE_POSITIVE (__GFP_NOTRACK)
 
-#define __GFP_BITS_SHIFT 25	/* Room for N __GFP_FOO bits */
+//ychoijy
+#define __GFP_BITS_SHIFT 26	/* Room for N __GFP_FOO bits */
+//eychoijy
+
 #define __GFP_BITS_MASK ((__force gfp_t)((1 << __GFP_BITS_SHIFT) - 1))
 
 /* This equals 0, but use constants in case they ever change */
@@ -216,7 +225,7 @@ static inline int allocflags_to_migratetype(gfp_t gfp_flags)
  *
  * ZONES_SHIFT must be <= 2 on 32 bit platforms.
  */
-
+/*
 #if 16 * ZONES_SHIFT > BITS_PER_LONG
 #error ZONES_SHIFT too large to create GFP_ZONE_TABLE integer
 #endif
@@ -231,13 +240,14 @@ static inline int allocflags_to_migratetype(gfp_t gfp_flags)
 	| (ZONE_MOVABLE << (___GFP_MOVABLE | ___GFP_HIGHMEM) * ZONES_SHIFT)   \
 	| (OPT_ZONE_DMA32 << (___GFP_MOVABLE | ___GFP_DMA32) * ZONES_SHIFT)   \
 )
-
+*/
 /*
  * GFP_ZONE_BAD is a bitmap for all combinations of __GFP_DMA, __GFP_DMA32
  * __GFP_HIGHMEM and __GFP_MOVABLE that are not permitted. One flag per
  * entry starting with bit 0. Bit is set if the combination is not
  * allowed.
  */
+/*
 #define GFP_ZONE_BAD ( \
 	1 << (___GFP_DMA | ___GFP_HIGHMEM)				      \
 	| 1 << (___GFP_DMA | ___GFP_DMA32)				      \
@@ -248,9 +258,30 @@ static inline int allocflags_to_migratetype(gfp_t gfp_flags)
 	| 1 << (___GFP_MOVABLE | ___GFP_DMA32 | ___GFP_HIGHMEM)		      \
 	| 1 << (___GFP_MOVABLE | ___GFP_DMA32 | ___GFP_DMA | ___GFP_HIGHMEM)  \
 )
-
+ */
 static inline enum zone_type gfp_zone(gfp_t flags)
 {
+#ifdef CONFIG_ZONE_DMA
+	if (flags & __GFP_DMA)
+		return ZONE_DMA;
+#elif CONFIG_ZONE_DMA32
+	if (flags & __GFP_DMA32)
+		return ZONE_DMA32;
+#endif
+#ifdef CONFIG_HIGHMEM
+	if (flags & __GFP_HIGHMEM)
+		return ZONE_HIGMEM;
+#endif
+	if (flags & __GFP_PCM) {
+		printk("%s:%d [ychoijy] pcm flag : %x\n", __func__, __LINE__, flags);
+		return ZONE_PCM;
+	}
+
+	if ((flags & (__GFP_HIGHMEM | __GFP_MOVABLE)) == (__GFP_HIGHMEM | __GFP_MOVABLE))
+		return ZONE_MOVABLE;
+
+
+	/*
 	enum zone_type z;
 	int bit = (__force int) (flags & GFP_ZONEMASK);
 
@@ -258,6 +289,7 @@ static inline enum zone_type gfp_zone(gfp_t flags)
 					 ((1 << ZONES_SHIFT) - 1);
 	VM_BUG_ON((GFP_ZONE_BAD >> bit) & 1);
 	return z;
+	*/
 }
 
 /*

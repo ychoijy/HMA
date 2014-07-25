@@ -572,12 +572,17 @@ void __init zone_sizes_init(void)
 	max_zone_pfns[ZONE_DMA]		= MAX_DMA_PFN;
 #endif
 #ifdef CONFIG_ZONE_DMA32
-	max_zone_pfns[ZONE_DMA32]	= MAX_DMA32_PFN;
+	//ychoijy
+//	max_zone_pfns[ZONE_DMA32]	= MAX_DMA32_PFN;
+	max_zone_pfns[ZONE_DMA32] 	= (1UL * 1024 * 1024 * 1024 >> PAGE_SHIFT);
 #endif
-	max_zone_pfns[ZONE_NORMAL]	= max_low_pfn;
+//	max_zone_pfns[ZONE_NORMAL]	= max_low_pfn;
+	max_zone_pfns[ZONE_NORMAL]	= (2UL * 1024 * 1024 * 1024 >> PAGE_SHIFT);
+	max_zone_pfns[ZONE_PCM]		= max_low_pfn;
 #ifdef CONFIG_HIGHMEM
 	max_zone_pfns[ZONE_HIGHMEM]	= max_pfn;
 #endif
+	//eychoijy
 
 	free_area_init_nodes(max_zone_pfns);
 }
