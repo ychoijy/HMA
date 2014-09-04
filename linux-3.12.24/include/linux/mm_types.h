@@ -25,6 +25,7 @@ struct address_space;
 
 #define USE_SPLIT_PTLOCKS	(NR_CPUS >= CONFIG_SPLIT_PTLOCK_CPUS)
 
+
 /*
  * Each physical page in the system has a struct page associated with
  * it to keep track of whatever it is we are using the page for at the
@@ -177,6 +178,12 @@ struct page {
 #ifdef LAST_NID_NOT_IN_PAGE_FLAGS
 	int _last_nid;
 #endif
+
+	//ychoijy
+	int dirty_history;
+	int freq_count;
+	int overlooked_count;
+	//eychoijy
 }
 /*
  * The struct page can be forced to be double word aligned so that atomic ops

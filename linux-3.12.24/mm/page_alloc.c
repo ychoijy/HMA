@@ -1883,6 +1883,7 @@ static inline void init_zone_allows_reclaim(int nid)
 }
 #endif	/* CONFIG_NUMA */
 
+
 /*
  * get_page_from_freelist goes through the zonelist trying to allocate
  * a page.
@@ -1953,7 +1954,7 @@ zonelist_scan:
 		 * (ALLOC_WMARK_LOW unset) before going into reclaim,
 		 * which is important when on a NUMA setup the allowed
 		 * zones are together not big enough to reach the
-		 * global limit.  The proper fix for these situations
+		_ * global limit.  The proper fix for these situations
 		 * will require awareness of zones in the
 		 * dirty-throttling and the flusher threads.
 		 */
@@ -2022,6 +2023,16 @@ zonelist_scan:
 		}
 
 try_this_zone:
+		//ychoijy
+		if (!strcmp(zone->name, "PCM")) {
+			//printk("%s:%d PCM Zone skip\n", __func__, __LINE__);
+			//continue;
+		} else if (!strcmp(zone->name, "Normal")) {
+			//printk("%s:%d NORMAL Zone skip\n", __func__, __LINE__);
+			//continue;
+		}
+		//eychoijy
+
 		page = buffered_rmqueue(preferred_zone, zone, order,
 						gfp_mask, migratetype);
 		if (page)
@@ -4040,6 +4051,9 @@ void __meminit memmap_init_zone(unsigned long size, int nid, unsigned long zone,
 		page_mapcount_reset(page);
 		page_nid_reset_last(page);
 		SetPageReserved(page);
+		page->dirty_history = 0;
+		page->freq_count = 0;
+		page->overlooked_count = 0;
 		/*
 		 * Mark the block movable so that blocks are reserved for
 		 * movable at startup. This will force kernel allocations
