@@ -2931,6 +2931,7 @@ int hugetlb_fault(struct mm_struct *mm, struct vm_area_struct *vma,
 	static DEFINE_MUTEX(hugetlb_instantiation_mutex);
 	struct hstate *h = hstate_vma(vma);
 
+	printk("%s:%d \n",__func__, __LINE__);
 	address &= huge_page_mask(h);
 
 	ptep = huge_pte_offset(mm, address);

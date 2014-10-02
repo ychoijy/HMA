@@ -2000,6 +2000,11 @@ out:
 static struct page *alloc_page_interleave(gfp_t gfp, unsigned order,
 					unsigned nid)
 {
+	//ychoijy
+	if (!strcmp(current->comm, "main")){
+		printk("%s:%d 4th, memory policy = INTERLEAVE\n", __func__, __LINE__);
+	}
+	//eychoijy
 	struct zonelist *zl;
 	struct page *page;
 
@@ -2056,6 +2061,11 @@ retry_cpuset:
 
 		return page;
 	}
+	//ychoijy
+	if (!strcmp(current->comm, "main")){
+		printk("%s:%d 4th, memory policy = NOT INTERLEAVE\n", __func__, __LINE__);
+	}
+	//eychoijy
 	page = __alloc_pages_nodemask(gfp, order,
 				      policy_zonelist(gfp, pol, node),
 				      policy_nodemask(gfp, pol));

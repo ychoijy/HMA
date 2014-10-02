@@ -5,14 +5,41 @@
 #include <linux/mm.h>
 #include <asm/pgtable.h>
 #include <linux/delay.h>
+#include <linux/migrate_mode.h>
+#include <linux/migrate.h>
+#include <linux/mm_inline.h>
 
+
+#define MAX_EXE		50
 #define IS_DIRTY	1
 #define IS_NOT_DIRTY	0
 
+
 struct task_struct *get_rq_task(int cpu);
 
+extern int isolate_lru_page(struct page *page);
+void get_random_bytes(void *buf, int nbytes);
 
-int pte_scan(struct mm_struct *mm, unsigned long address)
+
+struct page *alloc_migrate_to_dram(struct page *page, unsigned long private,
+				  int **resultp)
+{
+	gfp_t gfp_mask = GFP_USER | __GFP_MOVABLE;
+
+	printk("%s:%d\n", __func__, __LINE__);
+
+	return alloc_page(gfp_mask);
+}
+struct page *alloc_migrate_to_pcm(struct page *page, unsigned long private,
+				  int **resultp)
+{
+	gfp_t gfp_mask = GFP_USER | __GFP_MOVABLE | __GFP_PCM;
+
+	printk("%s:%d\n", __func__, __LINE__);
+
+	return alloc_page(gfp_mask);
+}
+struct page *pte_scan(struct mm_struct *mm, unsigned long address)
 {
 	struct page *page;
 	pgd_t *pgd;
@@ -50,34 +77,24 @@ int pte_scan(struct mm_struct *mm, unsigned long address)
 
 	page = pte_page(*pte);
 
-	(page->overlooked_count)++;
-
-	if (pte_dirty(*pte) && page->dirty_history == IS_NOT_DIRTY) {
-		page->dirty_history = IS_DIRTY;
-	} else if (!pte_dirty(*pte) && page->dirty_history == IS_DIRTY) {
-		printk("::::::::::::    DIRTY -> RESET    ::::::::::\n");
-		(page->freq_count)++;
-		page->overlooked_count = 0;
-		page->dirty_history = IS_NOT_DIRTY;
-	}
-
-	printk("page_history = %d, freq_count = %d, overlook_count = %d \n", page->dirty_history, page->freq_count, page->overlooked_count);
-
 	pte_unmap_unlock(pte, ptl);
 
-	return 0;
+	return page;
 out:
-	//printk("pte access error!!!\n");
-	return -1;
+	return NULL;
 }
+
 
 int vm_scan(struct task_struct *task)
 {
 	struct mm_struct *mm;
 	struct vm_area_struct *vma;
 	unsigned long i;
-	int ret;
-	unsigned long count=0;
+	int ret = 0;
+	struct page *page;
+	struct zone *zone;
+
+	LIST_HEAD(source);
 
 	mm = get_task_mm(task);
 
@@ -92,30 +109,87 @@ int vm_scan(struct task_struct *task)
 		return 0;
 	}
 
+	down_read(&mm->mmap_sem);
+
 	vma = mm->mmap;
 
-	printk("total vm_page number : %lu\n", mm->total_vm);
 	while(vma){
-		count = 0;
-		for(i = vma->vm_start ; i < vma->vm_end ; i += PAGE_SIZE) {
-			count++;
-			ret = pte_scan(mm, i);
+		for(i = vma->vm_start ; i < vma->vm_end; i += PAGE_SIZE) {
+			page = pte_scan(mm, i);
+			if (page == NULL) continue;
+
+			zone = page_zone(page);
+
+			if (!get_page_unless_zero(page)){
+				continue;
+			}
+#if 0
+			if (!strcmp(zone->name, "PCM")){
+				printk("PCM\n");
+				ret = isolate_lru_page(page);
+				if (!ret) { /* Success */
+					printk("Succes isolate_lru_page\n");
+					put_page(page);
+					list_add_tail(&page->lru, &source);
+					inc_zone_page_state(page, NR_ISOLATED_ANON + page_is_file_cache(page));
+				} else {
+					printk(KERN_ALERT "removing page from LRU failed\n");
+					put_page(page);
+					continue;
+				}
+			} else if (!strcmp(zone->name, "Normal")){
+				printk("Normal\n");
+			} else {
+				printk("Another\n");
+#endif
+
+#if 1
+			if (!strcmp(zone->name, "Normal")){
+				printk("Normal\n");
+				ret = isolate_lru_page(page);
+				if (!ret) { /* Success */
+					printk("Succes isolate_lru_page\n");
+					put_page(page);
+					list_add_tail(&page->lru, &source);
+					inc_zone_page_state(page, NR_ISOLATED_ANON + page_is_file_cache(page));
+				} else {
+					printk(KERN_ALERT "removing page from LRU failed\n");
+					put_page(page);
+					continue;
+				}
+
+			} else if (!strcmp(zone->name, "PCM")){
+				printk("PCM\n");
+			} else {
+				printk("Another\n");
+			}
+#endif
 		}
-		printk("vm_area_struct_count : %lu\n", count);
 
 		vma = vma->vm_next;
 	}
 
-	mmput(mm);
-	return 0;
+	if (!list_empty(&source)) {
+#if 0
+		ret = migrate_pages(&source, alloc_migrate_to_dram, 0, MIGRATE_SYNC, MR_MEMORY_HOTPLUG);
+#endif
+#if 1
+		ret = migrate_pages(&source, alloc_migrate_to_pcm, 0, MIGRATE_SYNC, MR_MEMORY_HOTPLUG);
+#endif
+		if (ret)
+			putback_movable_pages(&source);
+	}
+
+	up_read(&mm->mmap_sem);
+	return ret;
 }
 
-int __init init_pte_scan(void)
+
+int main_process_scan(void)
 {
 	struct task_struct *curr = NULL;
 	int cpu;
-
-	int count = 100;
+	int count = MAX_EXE;
 
 	while(count--) {
 		for_each_possible_cpu(cpu){
@@ -125,12 +199,35 @@ int __init init_pte_scan(void)
 				printk("curr is NULL\n");
 				return 0;
 			}
-			get_task_struct(curr);
-			printk("vm_scan start %s\n", curr->comm);
-			vm_scan(curr);
-			put_task_struct(curr);
+
+			if (!strcmp(curr->comm, "main")){
+				get_task_struct(curr);
+				printk("%dth vm_scan start %s\n", count, curr->comm);
+				vm_scan(curr);
+				put_task_struct(curr);
+			}
 		}
 		msleep(1000);
+	}
+
+	return 0;
+}
+
+int __init init_pte_scan(void)
+{
+	struct task_struct *curr = NULL;
+	int count = MAX_EXE;
+
+	curr = current;
+
+	while (count--) {
+		if (curr == NULL) {
+			printk("curr is NULL\n");
+			return 0;
+		}
+
+		printk("%dth vm_scan start=========================================== %s\n", count, curr->comm);
+		vm_scan(curr);
 	}
 
 	return 0;

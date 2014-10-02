@@ -114,7 +114,7 @@ void putback_movable_pages(struct list_head *l)
 			putback_lru_page(page);
 	}
 }
-
+EXPORT_SYMBOL(putback_movable_pages);
 /*
  * Restore a potential migration pte to a working pte entry
  */
@@ -1081,7 +1081,7 @@ out:
 
 	return rc;
 }
-
+EXPORT_SYMBOL(migrate_pages);
 #ifdef CONFIG_NUMA
 /*
  * Move a list of individual pages
@@ -1556,7 +1556,7 @@ bool numamigrate_update_ratelimit(pg_data_t *pgdat, unsigned long nr_pages)
 	else
 		pgdat->numabalancing_migrate_nr_pages += nr_pages;
 	spin_unlock(&pgdat->numabalancing_migrate_lock);
-	
+
 	return rate_limited;
 }
 

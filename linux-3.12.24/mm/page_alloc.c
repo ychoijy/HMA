@@ -2024,12 +2024,14 @@ zonelist_scan:
 
 try_this_zone:
 		//ychoijy
-		if (!strcmp(zone->name, "PCM")) {
-			//printk("%s:%d PCM Zone skip\n", __func__, __LINE__);
-			//continue;
-		} else if (!strcmp(zone->name, "Normal")) {
-			//printk("%s:%d NORMAL Zone skip\n", __func__, __LINE__);
-			//continue;
+		if ((gfp_mask & __GFP_PCM) == __GFP_PCM) {
+			if (strcmp(zone->name, "PCM")) {
+				continue;
+			}
+		} else {
+			if (!strcmp(zone->name, "PCM")) {
+				continue;
+			}
 		}
 		//eychoijy
 
@@ -2189,6 +2191,11 @@ __alloc_pages_may_oom(gfp_t gfp_mask, unsigned int order,
 	 * here, this is only to catch a parallel oom killing, we must fail if
 	 * we're still under heavy pressure.
 	 */
+	//ychoijy
+	if (!strcmp(current->comm, "main")){
+		printk("%s:%d 5th\n", __func__, __LINE__);
+	}
+	//eychoijy
 	page = get_page_from_freelist(gfp_mask|__GFP_HARDWALL, nodemask,
 		order, zonelist, high_zoneidx,
 		ALLOC_WMARK_HIGH|ALLOC_CPUSET,
@@ -2252,10 +2259,15 @@ __alloc_pages_direct_compact(gfp_t gfp_mask, unsigned int order,
 		drain_pages(get_cpu());
 		put_cpu();
 
+		//ychoijy
+		if (!strcmp(current->comm, "main")){
+			printk("%s:%d 5th\n", __func__, __LINE__);
+		}
+		//eychoijy
 		page = get_page_from_freelist(gfp_mask, nodemask,
-				order, zonelist, high_zoneidx,
-				alloc_flags & ~ALLOC_NO_WATERMARKS,
-				preferred_zone, migratetype);
+					      order, zonelist, high_zoneidx,
+					      alloc_flags & ~ALLOC_NO_WATERMARKS,
+					      preferred_zone, migratetype);
 		if (page) {
 			preferred_zone->compact_blockskip_flush = false;
 			preferred_zone->compact_considered = 0;
@@ -2346,9 +2358,15 @@ __alloc_pages_direct_reclaim(gfp_t gfp_mask, unsigned int order,
 		zlc_clear_zones_full(zonelist);
 
 retry:
+	//ychoijy
+	if (!strcmp(current->comm, "main")){
+		printk("%s:%d 5th\n", __func__, __LINE__);
+	}
+	//eychoijy
+
 	page = get_page_from_freelist(gfp_mask, nodemask, order,
-					zonelist, high_zoneidx,
-					alloc_flags & ~ALLOC_NO_WATERMARKS,
+				      zonelist, high_zoneidx,
+				      alloc_flags & ~ALLOC_NO_WATERMARKS,
 					preferred_zone, migratetype);
 
 	/*
@@ -2377,8 +2395,13 @@ __alloc_pages_high_priority(gfp_t gfp_mask, unsigned int order,
 	struct page *page;
 
 	do {
+		//ychoijy
+		if (!strcmp(current->comm, "main")){
+			printk("%s:%d 5th\n", __func__, __LINE__);
+		}
+		//eychoijy
 		page = get_page_from_freelist(gfp_mask, nodemask, order,
-			zonelist, high_zoneidx, ALLOC_NO_WATERMARKS,
+					      zonelist, high_zoneidx, ALLOC_NO_WATERMARKS,
 			preferred_zone, migratetype);
 
 		if (!page && gfp_mask & __GFP_NOFAIL)
@@ -2535,6 +2558,11 @@ restart:
 
 rebalance:
 	/* This is the last chance, in general, before the goto nopage. */
+	//ychoijy
+	if (!strcmp(current->comm, "main")){
+		printk("%s:%d 5th\n", __func__, __LINE__);
+	}
+	//eychoijy
 	page = get_page_from_freelist(gfp_mask, nodemask, order, zonelist,
 			high_zoneidx, alloc_flags & ~ALLOC_NO_WATERMARKS,
 			preferred_zone, migratetype);
@@ -2736,6 +2764,12 @@ retry_cpuset:
 #endif
 retry:
 	/* First allocation attempt */
+
+	//ychoijy
+	if (!strcmp(current->comm, "main")){
+		printk("%s:%d 5th\n", __func__, __LINE__);
+	}
+	//eychoijy
 	page = get_page_from_freelist(gfp_mask|__GFP_HARDWALL, nodemask, order,
 			zonelist, high_zoneidx, alloc_flags,
 			preferred_zone, migratetype);

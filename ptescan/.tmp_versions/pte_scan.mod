@@ -1,2 +1,2 @@
-/home/ychoijy/workspace/study/ptescan/pte_scan.ko
-/home/ychoijy/workspace/study/ptescan/pte_scan.o
+/home/ychoijy/HMA/ptescan/pte_scan.ko
+/home/ychoijy/HMA/ptescan/pte_scan.o

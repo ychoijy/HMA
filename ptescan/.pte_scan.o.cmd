@@ -1,8 +1,8 @@
-cmd_/home/ychoijy/workspace/study/ptescan/pte_scan.o := /usr/bin/gcc -Wp,-MD,/home/ychoijy/workspace/study/ptescan/.pte_scan.o.d  -nostdinc -isystem /usr/lib/gcc/x86_64-linux-gnu/4.8/include -I/home/ychoijy/HMA/linux-3.12.24/arch/x86/include -Iarch/x86/include/generated  -Iinclude -I/home/ychoijy/HMA/linux-3.12.24/arch/x86/include/uapi -Iarch/x86/include/generated/uapi -I/home/ychoijy/HMA/linux-3.12.24/include/uapi -Iinclude/generated/uapi -include /home/ychoijy/HMA/linux-3.12.24/include/linux/kconfig.h -D__KERNEL__ -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs -fno-strict-aliasing -fno-common -Werror-implicit-function-declaration -Wno-format-security -fno-delete-null-pointer-checks -O2 -m64 -mno-mmx -mno-sse -mpreferred-stack-boundary=3 -mtune=generic -mno-red-zone -mcmodel=kernel -funit-at-a-time -maccumulate-outgoing-args -fstack-protector -DCONFIG_X86_X32_ABI -DCONFIG_AS_CFI=1 -DCONFIG_AS_CFI_SIGNAL_FRAME=1 -DCONFIG_AS_CFI_SECTIONS=1 -DCONFIG_AS_FXSAVEQ=1 -DCONFIG_AS_AVX=1 -DCONFIG_AS_AVX2=1 -pipe -Wno-sign-compare -fno-asynchronous-unwind-tables -mno-sse -mno-mmx -mno-sse2 -mno-3dnow -mno-avx -Wframe-larger-than=1024 -Wno-unused-but-set-variable -fno-omit-frame-pointer -fno-optimize-sibling-calls -g -pg -mfentry -DCC_USING_FENTRY -Wdeclaration-after-statement -Wno-pointer-sign -fno-strict-overflow -fconserve-stack -DCC_HAVE_ASM_GOTO  -DMODULE  -D"KBUILD_STR(s)=\#s" -D"KBUILD_BASENAME=KBUILD_STR(pte_scan)"  -D"KBUILD_MODNAME=KBUILD_STR(pte_scan)" -c -o /home/ychoijy/workspace/study/ptescan/.tmp_pte_scan.o /home/ychoijy/workspace/study/ptescan/pte_scan.c
+cmd_/home/ychoijy/HMA/ptescan/pte_scan.o := /usr/bin/gcc -Wp,-MD,/home/ychoijy/HMA/ptescan/.pte_scan.o.d  -nostdinc -isystem /usr/lib/gcc/x86_64-linux-gnu/4.8/include -I/home/ychoijy/HMA/linux-3.12.24/arch/x86/include -Iarch/x86/include/generated  -Iinclude -I/home/ychoijy/HMA/linux-3.12.24/arch/x86/include/uapi -Iarch/x86/include/generated/uapi -I/home/ychoijy/HMA/linux-3.12.24/include/uapi -Iinclude/generated/uapi -include /home/ychoijy/HMA/linux-3.12.24/include/linux/kconfig.h -D__KERNEL__ -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs -fno-strict-aliasing -fno-common -Werror-implicit-function-declaration -Wno-format-security -fno-delete-null-pointer-checks -O2 -m64 -mno-mmx -mno-sse -mpreferred-stack-boundary=3 -mtune=generic -mno-red-zone -mcmodel=kernel -funit-at-a-time -maccumulate-outgoing-args -fstack-protector -DCONFIG_X86_X32_ABI -DCONFIG_AS_CFI=1 -DCONFIG_AS_CFI_SIGNAL_FRAME=1 -DCONFIG_AS_CFI_SECTIONS=1 -DCONFIG_AS_FXSAVEQ=1 -DCONFIG_AS_AVX=1 -DCONFIG_AS_AVX2=1 -pipe -Wno-sign-compare -fno-asynchronous-unwind-tables -mno-sse -mno-mmx -mno-sse2 -mno-3dnow -mno-avx -Wframe-larger-than=1024 -Wno-unused-but-set-variable -fno-omit-frame-pointer -fno-optimize-sibling-calls -g -pg -mfentry -DCC_USING_FENTRY -Wdeclaration-after-statement -Wno-pointer-sign -fno-strict-overflow -fconserve-stack -DCC_HAVE_ASM_GOTO  -DMODULE  -D"KBUILD_STR(s)=\#s" -D"KBUILD_BASENAME=KBUILD_STR(pte_scan)"  -D"KBUILD_MODNAME=KBUILD_STR(pte_scan)" -c -o /home/ychoijy/HMA/ptescan/.tmp_pte_scan.o /home/ychoijy/HMA/ptescan/pte_scan.c
 
-source_/home/ychoijy/workspace/study/ptescan/pte_scan.o := /home/ychoijy/workspace/study/ptescan/pte_scan.c
+source_/home/ychoijy/HMA/ptescan/pte_scan.o := /home/ychoijy/HMA/ptescan/pte_scan.c
 
-deps_/home/ychoijy/workspace/study/ptescan/pte_scan.o := \
+deps_/home/ychoijy/HMA/ptescan/pte_scan.o := \
   include/linux/init.h \
     $(wildcard include/config/broken/rodata.h) \
     $(wildcard include/config/modules.h) \
@@ -698,7 +698,147 @@ deps_/home/ychoijy/workspace/study/ptescan/pte_scan.o := \
   include/linux/delay.h \
   /home/ychoijy/HMA/linux-3.12.24/arch/x86/include/asm/delay.h \
   include/asm-generic/delay.h \
+  include/linux/migrate_mode.h \
+  include/linux/migrate.h \
+  include/linux/mempolicy.h \
+    $(wildcard include/config/tmpfs.h) \
+    $(wildcard include/config/arch/enable/hugepage/migration.h) \
+  include/linux/slab.h \
+    $(wildcard include/config/slab/debug.h) \
+    $(wildcard include/config/failslab.h) \
+    $(wildcard include/config/slob.h) \
+    $(wildcard include/config/slab.h) \
+    $(wildcard include/config/slub.h) \
+    $(wildcard include/config/debug/slab.h) \
+  include/linux/kmemleak.h \
+    $(wildcard include/config/debug/kmemleak.h) \
+  include/linux/slub_def.h \
+    $(wildcard include/config/slub/stats.h) \
+    $(wildcard include/config/memcg/kmem.h) \
+  include/linux/pagemap.h \
+  include/linux/fs.h \
+    $(wildcard include/config/fs/posix/acl.h) \
+    $(wildcard include/config/quota.h) \
+    $(wildcard include/config/fsnotify.h) \
+    $(wildcard include/config/ima.h) \
+    $(wildcard include/config/debug/writecount.h) \
+    $(wildcard include/config/file/locking.h) \
+    $(wildcard include/config/fs/xip.h) \
+  include/linux/kdev_t.h \
+  include/uapi/linux/kdev_t.h \
+  include/linux/dcache.h \
+  include/linux/rculist_bl.h \
+  include/linux/list_bl.h \
+  include/linux/lockref.h \
+    $(wildcard include/config/cmpxchg/lockref.h) \
+  include/linux/path.h \
+  include/linux/list_lru.h \
+  include/linux/radix-tree.h \
+  include/linux/semaphore.h \
+  /home/ychoijy/HMA/linux-3.12.24/include/uapi/linux/fiemap.h \
+  include/linux/percpu-rwsem.h \
+  include/linux/blk_types.h \
+    $(wildcard include/config/blk/cgroup.h) \
+    $(wildcard include/config/blk/dev/integrity.h) \
+  include/uapi/linux/fs.h \
+  /home/ychoijy/HMA/linux-3.12.24/include/uapi/linux/limits.h \
+  include/linux/quota.h \
+    $(wildcard include/config/quota/netlink/interface.h) \
+  /home/ychoijy/HMA/linux-3.12.24/include/uapi/linux/dqblk_xfs.h \
+  include/linux/dqblk_v1.h \
+  include/linux/dqblk_v2.h \
+  include/linux/dqblk_qtree.h \
+  include/linux/projid.h \
+  include/uapi/linux/quota.h \
+  include/linux/nfs_fs_i.h \
+  include/linux/fcntl.h \
+  include/uapi/linux/fcntl.h \
+  /home/ychoijy/HMA/linux-3.12.24/arch/x86/include/uapi/asm/fcntl.h \
+  /home/ychoijy/HMA/linux-3.12.24/include/uapi/asm-generic/fcntl.h \
+  include/linux/highmem.h \
+  include/linux/uaccess.h \
+  /home/ychoijy/HMA/linux-3.12.24/arch/x86/include/asm/uaccess.h \
+    $(wildcard include/config/x86/intel/usercopy.h) \
+  /home/ychoijy/HMA/linux-3.12.24/arch/x86/include/asm/smap.h \
+    $(wildcard include/config/x86/smap.h) \
+  /home/ychoijy/HMA/linux-3.12.24/arch/x86/include/asm/uaccess_64.h \
+  include/linux/hardirq.h \
+  include/linux/preempt_mask.h \
+  /home/ychoijy/HMA/linux-3.12.24/arch/x86/include/asm/hardirq.h \
+    $(wildcard include/config/x86/thermal/vector.h) \
+    $(wildcard include/config/x86/mce/threshold.h) \
+  include/linux/irq.h \
+    $(wildcard include/config/generic/pending/irq.h) \
+    $(wildcard include/config/hardirqs/sw/resend.h) \
+  include/linux/irqreturn.h \
+  include/linux/irqnr.h \
+  include/uapi/linux/irqnr.h \
+  /home/ychoijy/HMA/linux-3.12.24/arch/x86/include/asm/irq.h \
+  /home/ychoijy/HMA/linux-3.12.24/arch/x86/include/asm/irq_regs.h \
+  include/linux/irqdesc.h \
+    $(wildcard include/config/irq/preflow/fasteoi.h) \
+    $(wildcard include/config/sparse/irq.h) \
+  /home/ychoijy/HMA/linux-3.12.24/arch/x86/include/asm/hw_irq.h \
+    $(wildcard include/config/irq/remap.h) \
+  include/linux/profile.h \
+    $(wildcard include/config/profiling.h) \
+  /home/ychoijy/HMA/linux-3.12.24/arch/x86/include/asm/sections.h \
+    $(wildcard include/config/debug/rodata.h) \
+  include/asm-generic/sections.h \
+  include/linux/ftrace_irq.h \
+    $(wildcard include/config/ftrace/nmi/enter.h) \
+  include/linux/vtime.h \
+  include/linux/context_tracking_state.h \
+  /home/ychoijy/HMA/linux-3.12.24/arch/x86/include/asm/cacheflush.h \
+    $(wildcard include/config/x86/pat.h) \
+    $(wildcard include/config/debug/rodata/test.h) \
+  include/asm-generic/cacheflush.h \
+  include/linux/hugetlb_inline.h \
+  include/uapi/linux/mempolicy.h \
+  include/linux/mm_inline.h \
+  include/linux/swap.h \
+    $(wildcard include/config/frontswap.h) \
+    $(wildcard include/config/memcg/swap.h) \
+  include/linux/memcontrol.h \
+    $(wildcard include/config/inet.h) \
+  include/linux/cgroup.h \
+  /home/ychoijy/HMA/linux-3.12.24/include/uapi/linux/cgroupstats.h \
+  /home/ychoijy/HMA/linux-3.12.24/include/uapi/linux/taskstats.h \
+  include/linux/prio_heap.h \
+  include/linux/idr.h \
+  include/linux/xattr.h \
+  include/uapi/linux/xattr.h \
+  /home/ychoijy/HMA/linux-3.12.24/include/uapi/linux/libc-compat.h \
+  include/linux/percpu-refcount.h \
+  include/linux/cgroup_subsys.h \
+    $(wildcard include/config/cgroup/debug.h) \
+    $(wildcard include/config/cgroup/cpuacct.h) \
+    $(wildcard include/config/cgroup/device.h) \
+    $(wildcard include/config/cgroup/freezer.h) \
+    $(wildcard include/config/net/cls/cgroup.h) \
+    $(wildcard include/config/cgroup/perf.h) \
+    $(wildcard include/config/netprio/cgroup.h) \
+    $(wildcard include/config/cgroup/hugetlb.h) \
+  include/linux/node.h \
+    $(wildcard include/config/memory/hotplug/sparse.h) \
+  include/linux/device.h \
+    $(wildcard include/config/debug/devres.h) \
+    $(wildcard include/config/pinctrl.h) \
+    $(wildcard include/config/dma/cma.h) \
+    $(wildcard include/config/devtmpfs.h) \
+    $(wildcard include/config/sysfs/deprecated.h) \
+  include/linux/klist.h \
+  include/linux/pinctrl/devinfo.h \
+  include/linux/pinctrl/consumer.h \
+  include/linux/seq_file.h \
+  include/linux/pinctrl/pinctrl-state.h \
+  include/linux/ratelimit.h \
+  /home/ychoijy/HMA/linux-3.12.24/arch/x86/include/asm/device.h \
+    $(wildcard include/config/x86/dev/dma/ops.h) \
+    $(wildcard include/config/intel/iommu.h) \
+    $(wildcard include/config/amd/iommu.h) \
+  include/linux/pm_wakeup.h \
 
-/home/ychoijy/workspace/study/ptescan/pte_scan.o: $(deps_/home/ychoijy/workspace/study/ptescan/pte_scan.o)
+/home/ychoijy/HMA/ptescan/pte_scan.o: $(deps_/home/ychoijy/HMA/ptescan/pte_scan.o)
 
-$(deps_/home/ychoijy/workspace/study/ptescan/pte_scan.o):
+$(deps_/home/ychoijy/HMA/ptescan/pte_scan.o):

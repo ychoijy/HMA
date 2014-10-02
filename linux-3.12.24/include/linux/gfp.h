@@ -347,7 +347,6 @@ static inline struct page *alloc_pages_node(int nid, gfp_t gfp_mask,
 	/* Unknown node is current node */
 	if (nid < 0)
 		nid = numa_node_id();
-
 	return __alloc_pages(gfp_mask, order, node_zonelist(nid, gfp_mask));
 }
 

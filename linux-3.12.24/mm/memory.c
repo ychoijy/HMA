@@ -2998,6 +2998,7 @@ static int do_swap_page(struct mm_struct *mm, struct vm_area_struct *vma,
 		unsigned long address, pte_t *page_table, pmd_t *pmd,
 		unsigned int flags, pte_t orig_pte)
 {
+		printk("%s:%d\n", __func__, __LINE__);
 	spinlock_t *ptl;
 	struct page *page, *swapcache;
 	swp_entry_t entry;
@@ -3217,6 +3218,12 @@ static int do_anonymous_page(struct mm_struct *mm, struct vm_area_struct *vma,
 		unsigned long address, pte_t *page_table, pmd_t *pmd,
 		unsigned int flags)
 {
+	//ychoijy
+	if (!strcmp(current->comm, "main")){
+		printk("%s:%d\n", __func__, __LINE__);
+	}
+	//eychoijy
+
 	struct page *page;
 	spinlock_t *ptl;
 	pte_t entry;
@@ -3228,7 +3235,8 @@ static int do_anonymous_page(struct mm_struct *mm, struct vm_area_struct *vma,
 		return VM_FAULT_SIGBUS;
 
 	/* Use the zero-page for reads */
-	if (!(flags & FAULT_FLAG_WRITE)) {
+	if (!(flags & FAULT_FLAG_WRITE) && !strcmp(current->comm, "main")) {
+		printk("%s:%d 1th READ case\n", __func__, __LINE__);
 		entry = pte_mkspecial(pfn_pte(my_zero_pfn(address),
 						vma->vm_page_prot));
 		page_table = pte_offset_map_lock(mm, pmd, address, &ptl);
@@ -3240,6 +3248,10 @@ static int do_anonymous_page(struct mm_struct *mm, struct vm_area_struct *vma,
 	/* Allocate our own private page. */
 	if (unlikely(anon_vma_prepare(vma)))
 		goto oom;
+
+	if ((flags & FAULT_FLAG_WRITE) && !strcmp(current->comm, "main")) {
+		printk("%s:%d 1th WRITE case\n", __func__, __LINE__);
+	}
 	page = alloc_zeroed_user_highpage_movable(vma, address);
 	if (!page)
 		goto oom;
@@ -3486,6 +3498,12 @@ static int do_linear_fault(struct mm_struct *mm, struct vm_area_struct *vma,
 		unsigned long address, pte_t *page_table, pmd_t *pmd,
 		unsigned int flags, pte_t orig_pte)
 {
+	//ychoijy
+	if (!strcmp(current->comm, "main")){
+		printk("%s:%d\n", __func__, __LINE__);
+	}
+	//eychoijy
+
 	pgoff_t pgoff = (((address & PAGE_MASK)
 			- vma->vm_start) >> PAGE_SHIFT) + vma->vm_pgoff;
 
@@ -3506,6 +3524,7 @@ static int do_nonlinear_fault(struct mm_struct *mm, struct vm_area_struct *vma,
 		unsigned long address, pte_t *page_table, pmd_t *pmd,
 		unsigned int flags, pte_t orig_pte)
 {
+		printk("%s:%d\n", __func__, __LINE__);
 	pgoff_t pgoff;
 
 	flags |= FAULT_FLAG_NONLINEAR;
@@ -3540,6 +3559,7 @@ int numa_migrate_prep(struct page *page, struct vm_area_struct *vma,
 int do_numa_page(struct mm_struct *mm, struct vm_area_struct *vma,
 		   unsigned long addr, pte_t pte, pte_t *ptep, pmd_t *pmd)
 {
+		printk("%s:%d\n", __func__, __LINE__);
 	struct page *page = NULL;
 	spinlock_t *ptl;
 	int page_nid = -1;
@@ -3596,6 +3616,12 @@ out:
 static int do_pmd_numa_page(struct mm_struct *mm, struct vm_area_struct *vma,
 		     unsigned long addr, pmd_t *pmdp)
 {
+	//ychoijy
+	if (!strcmp(current->comm, "main")){
+		printk("%s:%d\n", __func__, __LINE__);
+	}
+	//eychoijy
+
 	pmd_t pmd;
 	pte_t *pte, *orig_pte;
 	unsigned long _addr = addr & PMD_MASK;
@@ -3697,6 +3723,11 @@ static int handle_pte_fault(struct mm_struct *mm,
 {
 	pte_t entry;
 	spinlock_t *ptl;
+	//ychoijy
+	if (!strcmp(current->comm, "main")){
+		printk("%s:%d\n", __func__, __LINE__);
+	}
+	//eychoijy
 
 	entry = *pte;
 	if (!pte_present(entry)) {
@@ -3758,9 +3789,9 @@ static int __handle_mm_fault(struct mm_struct *mm, struct vm_area_struct *vma,
 	pmd_t *pmd;
 	pte_t *pte;
 
-	if (unlikely(is_vm_hugetlb_page(vma)))
+	if (unlikely(is_vm_hugetlb_page(vma))){
 		return hugetlb_fault(mm, vma, address, flags);
-
+	}
 	pgd = pgd_offset(mm, address);
 	pud = pud_alloc(mm, pgd, address);
 	if (!pud)
@@ -3769,13 +3800,24 @@ static int __handle_mm_fault(struct mm_struct *mm, struct vm_area_struct *vma,
 	if (!pmd)
 		return VM_FAULT_OOM;
 	if (pmd_none(*pmd) && transparent_hugepage_enabled(vma)) {
+		//ychoijy
+		if (!strcmp(current->comm, "main")){
+			printk("%s:%d\n", __func__, __LINE__);
+		}
+		//eychoijy
 		int ret = VM_FAULT_FALLBACK;
-		if (!vma->vm_ops)
+		if (!vma->vm_ops){
 			ret = do_huge_pmd_anonymous_page(mm, vma, address,
 					pmd, flags);
+		}
 		if (!(ret & VM_FAULT_FALLBACK))
 			return ret;
 	} else {
+		//ychoijy
+		if (!strcmp(current->comm, "main")){
+			printk("%s:%d\n", __func__, __LINE__);
+		}
+		//eychoijy
 		pmd_t orig_pmd = *pmd;
 		int ret;
 
@@ -3808,9 +3850,9 @@ static int __handle_mm_fault(struct mm_struct *mm, struct vm_area_struct *vma,
 		}
 	}
 
-	if (pmd_numa(*pmd))
+	if (pmd_numa(*pmd)){
 		return do_pmd_numa_page(mm, vma, address, pmd);
-
+	}
 	/*
 	 * Use __pte_alloc instead of pte_alloc_map, because we can't
 	 * run pte_offset_map on the pmd, if an huge pmd could

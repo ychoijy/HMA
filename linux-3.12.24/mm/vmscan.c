@@ -1314,6 +1314,7 @@ int isolate_lru_page(struct page *page)
 	}
 	return ret;
 }
+EXPORT_SYMBOL(isolate_lru_page);
 
 /*
  * A direct reclaimer may isolate SWAP_CLUSTER_MAX pages from the LRU list and
