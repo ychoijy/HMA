@@ -18,13 +18,16 @@ static const struct modversion_info ____versions[]
 __used
 __attribute__((section("__versions"))) = {
 	{ 0x9b83dafd, __VMLINUX_SYMBOL_STR(module_layout) },
-	{ 0x4a9152f1, __VMLINUX_SYMBOL_STR(current_task) },
+	{ 0xf9a482f9, __VMLINUX_SYMBOL_STR(msleep) },
 	{ 0x23d5a8f, __VMLINUX_SYMBOL_STR(__put_task_struct) },
 	{ 0x1bbe925c, __VMLINUX_SYMBOL_STR(get_rq_task) },
-	{ 0xf9a482f9, __VMLINUX_SYMBOL_STR(msleep) },
 	{ 0xfe7c4287, __VMLINUX_SYMBOL_STR(nr_cpu_ids) },
 	{ 0xc0a3d105, __VMLINUX_SYMBOL_STR(find_next_bit) },
 	{ 0xb9249d16, __VMLINUX_SYMBOL_STR(cpu_possible_mask) },
+	{ 0x7c7edf8d, __VMLINUX_SYMBOL_STR(kmem_cache_alloc_trace) },
+	{ 0x8c4a1f73, __VMLINUX_SYMBOL_STR(kmalloc_caches) },
+	{ 0x1aea5bcf, __VMLINUX_SYMBOL_STR(next_zone) },
+	{ 0x10cd676e, __VMLINUX_SYMBOL_STR(first_online_pgdat) },
 	{ 0x6ae6279d, __VMLINUX_SYMBOL_STR(mmput) },
 	{ 0xf394153a, __VMLINUX_SYMBOL_STR(inc_zone_page_state) },
 	{ 0x68a75634, __VMLINUX_SYMBOL_STR(put_page) },
@@ -49,4 +52,4 @@ __attribute__((section(".modinfo"))) =
 "depends=";
 
 
-MODULE_INFO(srcversion, "819DBE1285CA7DB6C7D1EB3");
+MODULE_INFO(srcversion, "1EC08720CE3491F92640F48");

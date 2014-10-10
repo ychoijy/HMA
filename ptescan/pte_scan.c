@@ -8,15 +8,17 @@
 #include <linux/migrate_mode.h>
 #include <linux/migrate.h>
 #include <linux/mm_inline.h>
-
+#include <linux/mmzone.h>
 
 #define MAX_EXE		50
 #define IS_DIRTY	1
 #define IS_NOT_DIRTY	0
 
+#define COUNT_SHIFT	48
+#define COUNT_MASK	0x0000FFFFFFFFFFFF
+
 
 struct task_struct *get_rq_task(int cpu);
-
 extern int isolate_lru_page(struct page *page);
 void get_random_bytes(void *buf, int nbytes);
 
@@ -46,6 +48,7 @@ struct page *pte_scan(struct mm_struct *mm, unsigned long address)
 	pud_t *pud;
 	pmd_t *pmd;
 	pte_t *pte;
+	unsigned long pfn;
 	spinlock_t *ptl;
 
 	pgd = pgd_offset(mm, address);
@@ -74,8 +77,28 @@ struct page *pte_scan(struct mm_struct *mm, unsigned long address)
 
 	ptl = pte_lockptr(mm, pmd);
 	spin_lock(ptl);
-
+/*
+ *  I will add page's information here
+ */
+	pfn = pte_pfn(*pte);
 	page = pte_page(*pte);
+
+	if (pte_young(*pte)) {
+		if (pte_dirty(*pte)){
+			if(page->dirty_history == 0) {
+				(page->freq_count)++;
+				page->dirty_history = 1;
+				printk("%s:%d freq_count : %d\n", __func__, __LINE__,
+				       page->freq_count);
+			} else {
+				printk("%s:%d dirty_history is 1\n", __func__, __LINE__);
+			}
+		} else {
+			page->dirty_history = 0;
+			printk("%s:%d dirty_history reset\n",__func__, __LINE__);
+		}
+	}
+
 
 	pte_unmap_unlock(pte, ptl);
 
@@ -131,7 +154,8 @@ int vm_scan(struct task_struct *task)
 					printk("Succes isolate_lru_page\n");
 					put_page(page);
 					list_add_tail(&page->lru, &source);
-					inc_zone_page_state(page, NR_ISOLATED_ANON + page_is_file_cache(page));
+					inc_zone_page_state(page,
+						NR_ISOLATED_ANON + page_is_file_cache(page));
 				} else {
 					printk(KERN_ALERT "removing page from LRU failed\n");
 					put_page(page);
@@ -151,7 +175,8 @@ int vm_scan(struct task_struct *task)
 					printk("Succes isolate_lru_page\n");
 					put_page(page);
 					list_add_tail(&page->lru, &source);
-					inc_zone_page_state(page, NR_ISOLATED_ANON + page_is_file_cache(page));
+					inc_zone_page_state(page,
+						NR_ISOLATED_ANON + page_is_file_cache(page));
 				} else {
 					printk(KERN_ALERT "removing page from LRU failed\n");
 					put_page(page);
@@ -171,10 +196,12 @@ int vm_scan(struct task_struct *task)
 
 	if (!list_empty(&source)) {
 #if 0
-		ret = migrate_pages(&source, alloc_migrate_to_dram, 0, MIGRATE_SYNC, MR_MEMORY_HOTPLUG);
+		ret = migrate_pages(&source, alloc_migrate_to_dram,
+				    0, MIGRATE_SYNC, MR_MEMORY_HOTPLUG);
 #endif
 #if 1
-		ret = migrate_pages(&source, alloc_migrate_to_pcm, 0, MIGRATE_SYNC, MR_MEMORY_HOTPLUG);
+		ret = migrate_pages(&source, alloc_migrate_to_pcm, 0,
+				    MIGRATE_SYNC, MR_MEMORY_HOTPLUG);
 #endif
 		if (ret)
 			putback_movable_pages(&source);
@@ -184,16 +211,16 @@ int vm_scan(struct task_struct *task)
 	return ret;
 }
 
-
 int main_process_scan(void)
 {
 	struct task_struct *curr = NULL;
 	int cpu;
 	int count = MAX_EXE;
+	LIST_HEAD(pcm_write_list);
 
-	while(count--) {
+	while(1) {
 		for_each_possible_cpu(cpu){
-			printk("########################   cpu : %d   #########################\n", cpu);
+			printk("############   cpu : %d   ##########\n", cpu);
 			curr = get_rq_task(cpu);
 			if (curr == NULL) {
 				printk("curr is NULL\n");
@@ -207,7 +234,7 @@ int main_process_scan(void)
 				put_task_struct(curr);
 			}
 		}
-		msleep(1000);
+		msleep(5000);
 	}
 
 	return 0;
@@ -215,20 +242,7 @@ int main_process_scan(void)
 
 int __init init_pte_scan(void)
 {
-	struct task_struct *curr = NULL;
-	int count = MAX_EXE;
-
-	curr = current;
-
-	while (count--) {
-		if (curr == NULL) {
-			printk("curr is NULL\n");
-			return 0;
-		}
-
-		printk("%dth vm_scan start=========================================== %s\n", count, curr->comm);
-		vm_scan(curr);
-	}
+	main_process_scan();
 
 	return 0;
 }
