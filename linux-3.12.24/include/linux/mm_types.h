@@ -180,9 +180,8 @@ struct page {
 #endif
 
 	//ychoijy
+	struct list_head mq;
 	int dirty_history;
-	int freq_count;
-	int overlooked_count;
 	//eychoijy
 }
 /*

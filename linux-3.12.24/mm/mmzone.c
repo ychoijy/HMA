@@ -99,6 +99,18 @@ void lruvec_init(struct lruvec *lruvec)
 		INIT_LIST_HEAD(&lruvec->lists[lru]);
 }
 
+//ychoijy
+void mqvec_init(struct mqvec *mqvec)
+{
+	int mq;
+
+	memset(mqvec, 0, sizeof(struct mqvec));
+
+	for_each_mq(mq)
+		INIT_LIST_HEAD(&mqvec->lists[mq]);
+}
+//eychoijy
+
 #if defined(CONFIG_NUMA_BALANCING) && !defined(LAST_NID_NOT_IN_PAGE_FLAGS)
 int page_nid_xchg_last(struct page *page, int nid)
 {

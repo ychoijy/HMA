@@ -4085,9 +4085,9 @@ void __meminit memmap_init_zone(unsigned long size, int nid, unsigned long zone,
 		page_mapcount_reset(page);
 		page_nid_reset_last(page);
 		SetPageReserved(page);
+		//ychoijy
 		page->dirty_history = 0;
-		page->freq_count = 0;
-		page->overlooked_count = 0;
+		//eychoijy
 		/*
 		 * Mark the block movable so that blocks are reserved for
 		 * movable at startup. This will force kernel allocations
@@ -4867,6 +4867,9 @@ static void __paginginit free_area_init_core(struct pglist_data *pgdat,
 		zone->name = zone_names[j];
 		spin_lock_init(&zone->lock);
 		spin_lock_init(&zone->lru_lock);
+		//ychoijy
+		spin_lock_init(&zone->mq_lock);
+		//eychoijy
 		zone_seqlock_init(zone);
 		zone->zone_pgdat = pgdat;
 		zone_pcp_init(zone);
@@ -4875,6 +4878,9 @@ static void __paginginit free_area_init_core(struct pglist_data *pgdat,
 		mod_zone_page_state(zone, NR_ALLOC_BATCH, zone->managed_pages);
 
 		lruvec_init(&zone->lruvec);
+		//ychoijy
+		mqvec_init(&zone->mqvec);
+		//eychoijy
 		if (!size)
 			continue;
 

@@ -163,6 +163,12 @@ enum zone_stat_item {
 #define LRU_ACTIVE 1
 #define LRU_FILE 2
 
+//ychoijy
+#define MQ_LEVEL 11
+
+#define for_each_mq(mq) for (mq = 0; mq < MQ_LEVEL; mq++)
+//eychoijy
+
 enum lru_list {
 	LRU_INACTIVE_ANON = LRU_BASE,
 	LRU_ACTIVE_ANON = LRU_BASE + LRU_ACTIVE,
@@ -210,6 +216,10 @@ struct lruvec {
 #ifdef CONFIG_MEMCG
 	struct zone *zone;
 #endif
+};
+
+struct mqvec {
+	struct list_head lists[MQ_LEVEL];
 };
 
 /* Mask used at gathering information at once (see memcontrol.c) */
@@ -399,6 +409,11 @@ struct zone {
 	/* Fields commonly accessed by the page reclaim scanner */
 	spinlock_t		lru_lock;
 	struct lruvec		lruvec;
+
+	//ychoijy
+	spinlock_t		mq_lock;
+	struct mqvec		mqvec;
+	//ychoijy
 
 	unsigned long		pages_scanned;	   /* since last reclaim */
 	unsigned long		flags;		   /* zone flags, see below */
@@ -820,6 +835,8 @@ extern int init_currently_empty_zone(struct zone *zone, unsigned long start_pfn,
 				     enum memmap_context context);
 
 extern void lruvec_init(struct lruvec *lruvec);
+
+extern void mqvec_init(struct mqvec *mqvec);
 
 static inline struct zone *lruvec_zone(struct lruvec *lruvec)
 {

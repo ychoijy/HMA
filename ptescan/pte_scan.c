@@ -14,9 +14,14 @@
 #define IS_DIRTY	1
 #define IS_NOT_DIRTY	0
 
-#define COUNT_SHIFT	48
-#define COUNT_MASK	0x0000FFFFFFFFFFFF
+#define COUNT_SHIFT	34
+#define COUNT_MASK	((1UL << COUNT_SHIFT) - 1)
 
+#define MAKE_PFN_COUNT(ref, count)	\
+	(unsigned long)(((count) << COUNT_SHIFT) | (COUNT_MASK & (ref)))
+
+#define GET_COUNT(ref)	\
+	((unsigned long)(ref) >> COUNT_SHIFT)
 
 struct task_struct *get_rq_task(int cpu);
 extern int isolate_lru_page(struct page *page);
@@ -50,6 +55,7 @@ struct page *pte_scan(struct mm_struct *mm, unsigned long address)
 	pte_t *pte;
 	unsigned long pfn;
 	spinlock_t *ptl;
+	unsigned long count;
 
 	pgd = pgd_offset(mm, address);
 	if(!pgd_present(*pgd)) {
@@ -83,10 +89,15 @@ struct page *pte_scan(struct mm_struct *mm, unsigned long address)
 	pfn = pte_pfn(*pte);
 	page = pte_page(*pte);
 
+	printk("before pfn : %0#10lx\n", pfn);
+	count = GET_COUNT(pfn);
+	count++;
+	pfn = MAKE_PFN_COUNT(pfn, count);
+	printk("after pfn : %0#10lx, count : %lu\n", pfn, count);
+/*
 	if (pte_young(*pte)) {
 		if (pte_dirty(*pte)){
 			if(page->dirty_history == 0) {
-				(page->freq_count)++;
 				page->dirty_history = 1;
 				printk("%s:%d freq_count : %d\n", __func__, __LINE__,
 				       page->freq_count);
@@ -98,7 +109,7 @@ struct page *pte_scan(struct mm_struct *mm, unsigned long address)
 			printk("%s:%d dirty_history reset\n",__func__, __LINE__);
 		}
 	}
-
+*/
 
 	pte_unmap_unlock(pte, ptl);
 
@@ -211,6 +222,7 @@ int vm_scan(struct task_struct *task)
 	return ret;
 }
 
+
 int main_process_scan(void)
 {
 	struct task_struct *curr = NULL;
@@ -218,7 +230,7 @@ int main_process_scan(void)
 	int count = MAX_EXE;
 	LIST_HEAD(pcm_write_list);
 
-	while(1) {
+	while(count--) {
 		for_each_possible_cpu(cpu){
 			printk("############   cpu : %d   ##########\n", cpu);
 			curr = get_rq_task(cpu);
@@ -227,12 +239,12 @@ int main_process_scan(void)
 				return 0;
 			}
 
-			if (!strcmp(curr->comm, "main")){
+		//	if (!strcmp(curr->comm, "main")){
 				get_task_struct(curr);
 				printk("%dth vm_scan start %s\n", count, curr->comm);
 				vm_scan(curr);
 				put_task_struct(curr);
-			}
+		//	}
 		}
 		msleep(5000);
 	}
