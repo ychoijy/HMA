@@ -36,7 +36,7 @@ struct vm_area_struct;
 #define ___GFP_OTHER_NODE	0x800000u
 #define ___GFP_WRITE		0x1000000u
 //ychoijy
-#define ___GFP_PCM		0x2000000u
+#define ___GFP_DRAM		0x2000000u
 //eychoijy
 /* If the above are modified, __GFP_BITS_SHIFT may need updating */
 
@@ -54,8 +54,8 @@ struct vm_area_struct;
 #define __GFP_DMA32	((__force gfp_t)___GFP_DMA32)
 #define __GFP_MOVABLE	((__force gfp_t)___GFP_MOVABLE)  /* Page is movable */
 //ychoijy
-#define __GFP_PCM	((__force gfp_t)___GFP_PCM)
-#define GFP_ZONEMASK	(__GFP_DMA|__GFP_HIGHMEM|__GFP_DMA32|__GFP_PCM|__GFP_MOVABLE)
+#define __GFP_DRAM	((__force gfp_t)___GFP_DRAM)
+#define GFP_ZONEMASK	(__GFP_DMA|__GFP_HIGHMEM|__GFP_DMA32|__GFP_DRAM|__GFP_MOVABLE)
 //eychoijy
 /*
  * Action modifiers - doesn't change the zoning
@@ -277,8 +277,8 @@ static inline enum zone_type gfp_zone(gfp_t flags)
 	if (flags & __GFP_HIGHMEM)
 		return ZONE_HIGMEM;
 #endif
-	if (flags & __GFP_PCM) {
-		printk("%s:%d [ychoijy] pcm flag : %x\n", __func__, __LINE__, flags);
+	if (!(flags & __GFP_DRAM)) {
+		//printk("%s:%d [ychoijy] dram flag : %x\n", __func__, __LINE__, flags);
 		return ZONE_PCM;
 	}
 

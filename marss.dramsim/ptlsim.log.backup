@@ -3,10 +3,10 @@
 //  Copyright 1999-2007 Matt T. Yourst <yourst@yourst.com>
 //  Copyright 2009-2011 Avadh Patel <avadh4all@gmail.com>
 // 
-//  Git branch 'dramsim' on date Thu Aug 22 11:58:39 2013 (HEAD: 33a897)
-//  Built Jul 15 2014 22:20:06 on BUILDHOST using gcc-4.8
+//  Git branch 'master' on date Wed Oct 15 00:01:36 2014 (HEAD: c54d9d)
+//  Built Jun  2 2015 11:10:49 on BUILDHOST using gcc-4.8
 //  With 1 simulated cores
-//  Running on ychoijy-Unknow.(none)
+//  Running on controller.(none)
 //  
 
 Active parameters:

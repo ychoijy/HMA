@@ -98,6 +98,10 @@ struct scan_control {
 
 #define lru_to_page(_head) (list_entry((_head)->prev, struct page, lru))
 
+//ychoijy
+#define mq_to_page(_head) (list_entry((_head)->next, struct page, mq))
+//eychoijy
+
 #ifdef ARCH_HAS_PREFETCH
 #define prefetch_prev_lru_page(_page, _base, _field)			\
 	do {								\
@@ -2168,53 +2172,201 @@ static inline bool should_continue_reclaim(struct zone *zone,
 	}
 }
 
+//ychoijy
+
+struct zone* find_pcm_zone(void){
+	struct zone *zone;
+
+	for_each_zone(zone) {
+		if (!strcmp(zone->name, "PCM")) {
+			return zone;
+		}
+	}
+	return NULL;
+}
+
+static struct page *alloc_pcm(struct page *page, unsigned long private,
+				  int **resultp)
+{
+	gfp_t gfp_mask = GFP_USER | __GFP_MOVABLE;
+
+	printk("%s:%d\n", __func__, __LINE__);
+
+	return alloc_page(gfp_mask);
+}
+
+void reset_page_stat(struct list_head *wait_list, struct page *p)
+{
+	p->read_count = 0;
+	p->frq = 0;
+
+	if (p->pre_level == 0) {
+		p->pre_level = p->level;
+	} else {
+		p->pre_level = (p->pre_level + p->level) / 2;
+	}
+	p->level = 0;
+
+	if (!list_empty(&p->mq)) {
+		list_del_init(&p->mq);
+		list_move_tail(&p->wait, wait_list);
+	}
+
+	if (!list_empty(&p->victim)) {
+		list_del_init(&p->victim);
+	}
+
+}
+
+static int migrate_mq_pages(unsigned long nr_to_scan, struct list_head *src)
+{
+	unsigned long scan;
+	struct zone *zone = find_pcm_zone();
+	struct list_head *cur = src->next;
+	int ret = 0;
+	int nr_taken = 0;
+
+	for (scan = 1; scan <= nr_to_scan && src != cur; scan++) {
+		LIST_HEAD(source);
+		struct page *page;
+
+		page = mq_to_page(cur);
+
+		if (!page)
+			break;
+
+		cur = cur->next;
+
+		if (!get_page_unless_zero(page)) {
+			continue;
+		}
+		/*
+		 * We can skip free pages. And we can only deal with pages on
+		 * LRU.
+		 */
+		ret = isolate_lru_page(page);
+
+		if (!ret) { /* Success */
+			printk("isolate_lru_OK!!!\n");
+			put_page(page);
+			list_add_tail(&page->lru, &source);
+			nr_taken += 1;
+			inc_zone_page_state(page, NR_ISOLATED_ANON +
+					    page_is_file_cache(page));
+		} else {
+			printk("fail fail fail fail\n");
+			put_page(page);
+			scan -= 1;
+		}
+
+		if (!list_empty(&source)) {
+			ret = migrate_pages(&source, alloc_pcm, 0,
+					    MIGRATE_SYNC, MR_MEMORY_HOTPLUG);
+			if (ret) {
+				putback_movable_pages(&source);
+				nr_taken -= 1;
+				printk("fail migrate\n");
+			} else {
+				struct page *page;
+
+				list_for_each_entry(page, &source, lru) {
+					reset_page_stat(&zone->mqvec.wait_list, page);
+				}
+
+				printk("Success migrate DRAM->PCM #%d\n", nr_taken);
+				printk("Success migrate DRAM->PCM #%d\n", nr_taken);
+				printk("Success migrate DRAM->PCM #%d\n", nr_taken);
+				printk("Success migrate DRAM->PCM #%d\n", nr_taken);
+			}
+		}
+	}
+
+	return nr_taken;
+}
+
+static int shrink_mq(struct mqvec *mqvec, struct scan_control *sc)
+{
+	int nr_taken=0;
+	unsigned long nr_to_reclaim = sc->nr_to_reclaim;
+	int level;
+
+	if (!list_empty(&mqvec->victim_list)) {
+		printk("victim_list\n");
+		nr_taken = migrate_mq_pages(nr_to_reclaim, &mqvec->victim_list);
+	} else {
+		printk("victim_list is empty\n");
+	}
+
+	for(level = 0; level < MQ_LEVEL && nr_taken <= nr_to_reclaim; level++) {
+		if (!list_empty(&mqvec->lists[level])) {
+			printk("mq %d level list\n", level);
+			nr_taken += migrate_mq_pages(nr_to_reclaim,
+						     &mqvec->lists[level]);
+		} else {
+			printk("mq %d level is empty\n", level);
+		}
+	}
+	return nr_taken;
+}
+//eychoijy
+
 static void shrink_zone(struct zone *zone, struct scan_control *sc)
 {
 	unsigned long nr_reclaimed, nr_scanned;
-
-	do {
-		struct mem_cgroup *root = sc->target_mem_cgroup;
-		struct mem_cgroup_reclaim_cookie reclaim = {
-			.zone = zone,
-			.priority = sc->priority,
-		};
-		struct mem_cgroup *memcg;
-
-		nr_reclaimed = sc->nr_reclaimed;
-		nr_scanned = sc->nr_scanned;
-
-		memcg = mem_cgroup_iter(root, NULL, &reclaim);
+#if 0
+	//ychoijy
+	int nr_taken;
+	if (!strcmp(zone->name, "Normal")) {
+		printk("DRAM shrink_zone\n");
+		nr_taken = shrink_mq(&zone->mqvec, sc);
+		printk("<<%d>> page migration....\n", nr_taken);
+	} else {
+	//eychoijy
+#endif
 		do {
-			struct lruvec *lruvec;
+			struct mem_cgroup *root = sc->target_mem_cgroup;
+			struct mem_cgroup_reclaim_cookie reclaim = {
+				.zone = zone,
+				.priority = sc->priority,
+			};
+			struct mem_cgroup *memcg;
 
-			lruvec = mem_cgroup_zone_lruvec(zone, memcg);
+			nr_reclaimed = sc->nr_reclaimed;
+			nr_scanned = sc->nr_scanned;
 
-			shrink_lruvec(lruvec, sc);
+			memcg = mem_cgroup_iter(root, NULL, &reclaim);
+			do {
+				struct lruvec *lruvec;
 
-			/*
-			 * Direct reclaim and kswapd have to scan all memory
-			 * cgroups to fulfill the overall scan target for the
-			 * zone.
-			 *
-			 * Limit reclaim, on the other hand, only cares about
-			 * nr_to_reclaim pages to be reclaimed and it will
-			 * retry with decreasing priority if one round over the
-			 * whole hierarchy is not sufficient.
-			 */
-			if (!global_reclaim(sc) &&
-					sc->nr_reclaimed >= sc->nr_to_reclaim) {
-				mem_cgroup_iter_break(root, memcg);
-				break;
-			}
-			memcg = mem_cgroup_iter(root, memcg, &reclaim);
-		} while (memcg);
+				lruvec = mem_cgroup_zone_lruvec(zone, memcg);
 
-		vmpressure(sc->gfp_mask, sc->target_mem_cgroup,
-			   sc->nr_scanned - nr_scanned,
-			   sc->nr_reclaimed - nr_reclaimed);
+				shrink_lruvec(lruvec, sc);
 
-	} while (should_continue_reclaim(zone, sc->nr_reclaimed - nr_reclaimed,
-					 sc->nr_scanned - nr_scanned, sc));
+				/*
+				 * Direct reclaim and kswapd have to scan all memory
+				 * cgroups to fulfill the overall scan target for the
+				 * zone.
+				 *
+				 * Limit reclaim, on the other hand, only cares about
+				 * nr_to_reclaim pages to be reclaimed and it will
+				 * retry with decreasing priority if one round over the
+				 * whole hierarchy is not sufficient.
+				 */
+				if (!global_reclaim(sc) &&
+						sc->nr_reclaimed >= sc->nr_to_reclaim) {
+					mem_cgroup_iter_break(root, memcg);
+					break;
+				}
+				memcg = mem_cgroup_iter(root, memcg, &reclaim);
+			} while (memcg);
+
+			vmpressure(sc->gfp_mask, sc->target_mem_cgroup,
+				   sc->nr_scanned - nr_scanned,
+				   sc->nr_reclaimed - nr_reclaimed);
+
+		} while (should_continue_reclaim(zone, sc->nr_reclaimed - nr_reclaimed,
+						 sc->nr_scanned - nr_scanned, sc));
+//	}
 }
 
 /* Returns true if compaction should go ahead for a high-order request */

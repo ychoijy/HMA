@@ -106,8 +106,13 @@ void mqvec_init(struct mqvec *mqvec)
 
 	memset(mqvec, 0, sizeof(struct mqvec));
 
-	for_each_mq(mq)
+	for_each_mq(mq){
+		printk("%s%d mq number : %d", __func__, __LINE__, mq);
 		INIT_LIST_HEAD(&mqvec->lists[mq]);
+	}
+
+	INIT_LIST_HEAD(&mqvec->wait_list);
+	INIT_LIST_HEAD(&mqvec->victim_list);
 }
 //eychoijy
 

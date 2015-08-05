@@ -164,7 +164,7 @@ enum zone_stat_item {
 #define LRU_FILE 2
 
 //ychoijy
-#define MQ_LEVEL 11
+#define MQ_LEVEL 6
 
 #define for_each_mq(mq) for (mq = 0; mq < MQ_LEVEL; mq++)
 //eychoijy
@@ -220,6 +220,8 @@ struct lruvec {
 
 struct mqvec {
 	struct list_head lists[MQ_LEVEL];
+	struct list_head wait_list;
+	struct list_head victim_list;
 };
 
 /* Mask used at gathering information at once (see memcontrol.c) */
@@ -302,6 +304,10 @@ enum zone_type {
 	 */
 	ZONE_DMA32,
 #endif
+	//ychoijy
+	ZONE_PCM,
+	//eychoijy
+
 	/*
 	 * Normal addressable memory is in ZONE_NORMAL. DMA operations can be
 	 * performed on pages in ZONE_NORMAL if the DMA devices support
@@ -319,10 +325,6 @@ enum zone_type {
 	 */
 	ZONE_HIGHMEM,
 #endif
-	//ychoijy
-	ZONE_PCM,
-	//eychoijy
-
 	ZONE_MOVABLE,
 	__MAX_NR_ZONES
 };
@@ -846,6 +848,13 @@ static inline struct zone *lruvec_zone(struct lruvec *lruvec)
 	return container_of(lruvec, struct zone, lruvec);
 #endif
 }
+
+//ychoijy
+static inline struct zone *mqvec_zone(struct mqvec *mqvec)
+{
+	return container_of(mqvec, struct zone, mqvec);
+}
+//eychoijy
 
 #ifdef CONFIG_HAVE_MEMORY_PRESENT
 void memory_present(int nid, unsigned long start, unsigned long end);

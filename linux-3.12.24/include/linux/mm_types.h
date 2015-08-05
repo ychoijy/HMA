@@ -181,7 +181,14 @@ struct page {
 
 	//ychoijy
 	struct list_head mq;
-	int dirty_history;
+	struct list_head wait;
+	struct list_head victim;
+	int level;
+	int pre_level;
+	int read_count;
+	int frq;
+	int victim_count;
+	int demote_count;
 	//eychoijy
 }
 /*

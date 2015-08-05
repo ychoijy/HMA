@@ -17,28 +17,30 @@ __attribute__((section(".gnu.linkonce.this_module"))) = {
 static const struct modversion_info ____versions[]
 __used
 __attribute__((section("__versions"))) = {
-	{ 0x9b83dafd, __VMLINUX_SYMBOL_STR(module_layout) },
-	{ 0x23d5a8f, __VMLINUX_SYMBOL_STR(__put_task_struct) },
-	{ 0x1bbe925c, __VMLINUX_SYMBOL_STR(get_rq_task) },
+	{ 0xaa8ae39c, __VMLINUX_SYMBOL_STR(module_layout) },
+	{ 0x53f456fb, __VMLINUX_SYMBOL_STR(__put_task_struct) },
 	{ 0xf9a482f9, __VMLINUX_SYMBOL_STR(msleep) },
 	{ 0xfe7c4287, __VMLINUX_SYMBOL_STR(nr_cpu_ids) },
 	{ 0xc0a3d105, __VMLINUX_SYMBOL_STR(find_next_bit) },
+	{ 0x6d73d00b, __VMLINUX_SYMBOL_STR(get_rq_task) },
 	{ 0xb9249d16, __VMLINUX_SYMBOL_STR(cpu_possible_mask) },
-	{ 0x6ae6279d, __VMLINUX_SYMBOL_STR(mmput) },
-	{ 0xf394153a, __VMLINUX_SYMBOL_STR(inc_zone_page_state) },
-	{ 0x68a75634, __VMLINUX_SYMBOL_STR(put_page) },
-	{ 0xdd08201c, __VMLINUX_SYMBOL_STR(isolate_lru_page) },
-	{ 0xbd6f03f7, __VMLINUX_SYMBOL_STR(putback_movable_pages) },
+	{ 0xa6cdfacf, __VMLINUX_SYMBOL_STR(next_zone) },
+	{ 0x98255265, __VMLINUX_SYMBOL_STR(first_online_pgdat) },
+	{ 0x247cbd95, __VMLINUX_SYMBOL_STR(mmput) },
 	{ 0xf5893abf, __VMLINUX_SYMBOL_STR(up_read) },
-	{ 0xe9c56ecf, __VMLINUX_SYMBOL_STR(migrate_pages) },
-	{ 0xb189da9f, __VMLINUX_SYMBOL_STR(node_data) },
 	{ 0x57a6ccd0, __VMLINUX_SYMBOL_STR(down_read) },
-	{ 0x5f29afe1, __VMLINUX_SYMBOL_STR(get_task_mm) },
+	{ 0x31b8ca22, __VMLINUX_SYMBOL_STR(get_task_mm) },
 	{ 0xda3e43d1, __VMLINUX_SYMBOL_STR(_raw_spin_unlock) },
 	{ 0xd52bf1ce, __VMLINUX_SYMBOL_STR(_raw_spin_lock) },
-	{ 0xb4511f39, __VMLINUX_SYMBOL_STR(pv_mmu_ops) },
-	{ 0x5ce01aeb, __VMLINUX_SYMBOL_STR(alloc_pages_current) },
+	{ 0x5d1e93d6, __VMLINUX_SYMBOL_STR(pv_mmu_ops) },
+	{ 0x2faee88f, __VMLINUX_SYMBOL_STR(node_data) },
+	{ 0xbd6f03f7, __VMLINUX_SYMBOL_STR(putback_movable_pages) },
+	{ 0x30ef2754, __VMLINUX_SYMBOL_STR(migrate_pages) },
+	{ 0x81c721dd, __VMLINUX_SYMBOL_STR(inc_zone_page_state) },
+	{ 0x4a87a57, __VMLINUX_SYMBOL_STR(put_page) },
+	{ 0xeabad414, __VMLINUX_SYMBOL_STR(isolate_lru_page) },
 	{ 0x27e1a049, __VMLINUX_SYMBOL_STR(printk) },
+	{ 0x63821817, __VMLINUX_SYMBOL_STR(alloc_pages_current) },
 	{ 0xbdfb6dbb, __VMLINUX_SYMBOL_STR(__fentry__) },
 };
 
@@ -48,4 +50,4 @@ __attribute__((section(".modinfo"))) =
 "depends=";
 
 
-MODULE_INFO(srcversion, "699717167846D8776A10030");
+MODULE_INFO(srcversion, "B3842733F24D94FAB25DAF1");

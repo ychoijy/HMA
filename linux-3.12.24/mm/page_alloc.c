@@ -197,13 +197,13 @@ static char * const zone_names[MAX_NR_ZONES] = {
 #ifdef CONFIG_ZONE_DMA32
 	 "DMA32",
 #endif
+	//ychoijy
+	 "PCM",
+	//eychoijy
 	 "Normal",
 #ifdef CONFIG_HIGHMEM
 	 "HighMem",
 #endif
-	//ychoijy
-	 "PCM",
-	//eychoijy
 	 "Movable",
 };
 
@@ -2023,13 +2023,19 @@ zonelist_scan:
 		}
 
 try_this_zone:
+		/*
+		 *  if __GFP_DRAM is defined, page is not allocated to PCM.
+		 */
+
 		//ychoijy
-		if ((gfp_mask & __GFP_PCM) == __GFP_PCM) {
-			if (strcmp(zone->name, "PCM")) {
+		if ((gfp_mask & __GFP_DRAM) == __GFP_DRAM) {
+			if (!strcmp(zone->name, "PCM")
+			    || !strcmp(zone->name, "DMA32")
+			    || !strcmp(zone->name, "DMA")) {
 				continue;
 			}
 		} else {
-			if (!strcmp(zone->name, "PCM")) {
+			if (!strcmp(zone->name, "Normal")) {
 				continue;
 			}
 		}
@@ -2191,11 +2197,6 @@ __alloc_pages_may_oom(gfp_t gfp_mask, unsigned int order,
 	 * here, this is only to catch a parallel oom killing, we must fail if
 	 * we're still under heavy pressure.
 	 */
-	//ychoijy
-	if (!strcmp(current->comm, "main")){
-		printk("%s:%d 5th\n", __func__, __LINE__);
-	}
-	//eychoijy
 	page = get_page_from_freelist(gfp_mask|__GFP_HARDWALL, nodemask,
 		order, zonelist, high_zoneidx,
 		ALLOC_WMARK_HIGH|ALLOC_CPUSET,
@@ -2259,11 +2260,6 @@ __alloc_pages_direct_compact(gfp_t gfp_mask, unsigned int order,
 		drain_pages(get_cpu());
 		put_cpu();
 
-		//ychoijy
-		if (!strcmp(current->comm, "main")){
-			printk("%s:%d 5th\n", __func__, __LINE__);
-		}
-		//eychoijy
 		page = get_page_from_freelist(gfp_mask, nodemask,
 					      order, zonelist, high_zoneidx,
 					      alloc_flags & ~ALLOC_NO_WATERMARKS,
@@ -2358,12 +2354,6 @@ __alloc_pages_direct_reclaim(gfp_t gfp_mask, unsigned int order,
 		zlc_clear_zones_full(zonelist);
 
 retry:
-	//ychoijy
-	if (!strcmp(current->comm, "main")){
-		printk("%s:%d 5th\n", __func__, __LINE__);
-	}
-	//eychoijy
-
 	page = get_page_from_freelist(gfp_mask, nodemask, order,
 				      zonelist, high_zoneidx,
 				      alloc_flags & ~ALLOC_NO_WATERMARKS,
@@ -2395,11 +2385,6 @@ __alloc_pages_high_priority(gfp_t gfp_mask, unsigned int order,
 	struct page *page;
 
 	do {
-		//ychoijy
-		if (!strcmp(current->comm, "main")){
-			printk("%s:%d 5th\n", __func__, __LINE__);
-		}
-		//eychoijy
 		page = get_page_from_freelist(gfp_mask, nodemask, order,
 					      zonelist, high_zoneidx, ALLOC_NO_WATERMARKS,
 			preferred_zone, migratetype);
@@ -2558,11 +2543,6 @@ restart:
 
 rebalance:
 	/* This is the last chance, in general, before the goto nopage. */
-	//ychoijy
-	if (!strcmp(current->comm, "main")){
-		printk("%s:%d 5th\n", __func__, __LINE__);
-	}
-	//eychoijy
 	page = get_page_from_freelist(gfp_mask, nodemask, order, zonelist,
 			high_zoneidx, alloc_flags & ~ALLOC_NO_WATERMARKS,
 			preferred_zone, migratetype);
@@ -2765,11 +2745,6 @@ retry_cpuset:
 retry:
 	/* First allocation attempt */
 
-	//ychoijy
-	if (!strcmp(current->comm, "main")){
-		printk("%s:%d 5th\n", __func__, __LINE__);
-	}
-	//eychoijy
 	page = get_page_from_freelist(gfp_mask|__GFP_HARDWALL, nodemask, order,
 			zonelist, high_zoneidx, alloc_flags,
 			preferred_zone, migratetype);
@@ -2796,6 +2771,7 @@ retry:
 		 * complete.
 		 */
 		gfp_mask = memalloc_noio_flags(gfp_mask);
+
 		page = __alloc_pages_slowpath(gfp_mask, order,
 				zonelist, high_zoneidx, nodemask,
 				preferred_zone, migratetype);
@@ -4086,7 +4062,15 @@ void __meminit memmap_init_zone(unsigned long size, int nid, unsigned long zone,
 		page_nid_reset_last(page);
 		SetPageReserved(page);
 		//ychoijy
-		page->dirty_history = 0;
+		INIT_LIST_HEAD(&page->mq);
+		INIT_LIST_HEAD(&page->wait);
+		INIT_LIST_HEAD(&page->victim);
+		page->level = 0;
+		page->pre_level = 0;
+		page->read_count = 0;
+		page->frq = 0;
+		page->demote_count = 0;
+		page->victim_count = 0;
 		//eychoijy
 		/*
 		 * Mark the block movable so that blocks are reserved for

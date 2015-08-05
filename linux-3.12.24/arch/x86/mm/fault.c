@@ -1183,12 +1183,6 @@ good_area:
 	 * the fault:
 	 */
 
-	//ychoijy
-	if ((current != NULL) && !strcmp(current->comm, "main")){
-		printk("%s:%d ===========main process fault start==============\n", __func__, __LINE__);
-	}
-	//eychoijy
-
 	fault = handle_mm_fault(mm, vma, address, flags);
 
 	/*
