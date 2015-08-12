@@ -9,16 +9,37 @@
 #include <linux/migrate.h>
 #include <linux/mm_inline.h>
 #include <linux/mmzone.h>
+#include <linux/kthread.h>
 
-#define MAX_EXE		40
+#define MAX_EXE		50
 #define MQ_MIGRATE_TH	2
+#define DEMOTE_TH	2
+#define LIFE_TIME	100000
+#define SLEEP_TIME	100000
 
 #define READ_WEIGHT	4
 
 struct task_struct *get_rq_task(int cpu);
 extern int isolate_lru_page(struct page *page);
-void get_random_bytes(void *buf, int nbytes);
 
+void print_victim(struct zone *dram_zone)
+{
+	unsigned long count;
+	struct page *p;
+
+	count  = 0;
+	list_for_each_entry(p, &dram_zone->mqvec.victim_list, victim) {
+		if (p != NULL) {
+			count ++;
+		}
+	}
+
+	if (count != 0) {
+		printk("====== VICTIM  =====\n");
+		printk(" victim num : %ld\n", count);
+		printk("=======================\n");
+	}
+}
 void print_mq(struct zone *dram_zone, struct zone *pcm_zone)
 {
 	int i;
@@ -57,8 +78,6 @@ struct page *alloc_migrate_to_dram(struct page *page, unsigned long private,
 {
 	gfp_t gfp_mask = GFP_USER | __GFP_MOVABLE | __GFP_DRAM;
 
-//	printk("%s:%d\n", __func__, __LINE__);
-
 	return alloc_page(gfp_mask);
 }
 struct page *alloc_migrate_to_pcm(struct page *page, unsigned long private,
@@ -66,43 +85,10 @@ struct page *alloc_migrate_to_pcm(struct page *page, unsigned long private,
 {
 	gfp_t gfp_mask = GFP_USER | __GFP_MOVABLE;
 
-//	printk("%s:%d\n", __func__, __LINE__);
-
 	return alloc_page(gfp_mask);
 }
 
 int migrate_to_dram(struct page *page, struct zone *dram_zone, int level)
-{
-	int ret;
-	LIST_HEAD(source);
-
-	if (!get_page_unless_zero(page)){
-		return 0;
-	}
-	ret = isolate_lru_page(page);
-	if (!ret) { /* Success */
-//		printk("Succes isolate_lru_page\n");
-		put_page(page);
-		list_add_tail(&page->lru, &source);
-		inc_zone_page_state(page,
-				    NR_ISOLATED_ANON + page_is_file_cache(page));
-	} else {
-		printk(KERN_ALERT "removing page from LRU failed\n");
-		put_page(page);
-	}
-	if (!list_empty(&source)) {
-		ret = migrate_pages(&source, alloc_migrate_to_dram,
-				    0, MIGRATE_SYNC, MR_MEMORY_HOTPLUG);
-		if (ret) {
-			putback_movable_pages(&source);
-		} else {
-			list_move_tail(&page->mq, &dram_zone->mqvec.lists[level]);
-		}
-	}
-	return 1;
-}
-
-int migrate_to_pcm(struct page *page)
 {
 	int ret;
 	LIST_HEAD(source);
@@ -120,15 +106,16 @@ int migrate_to_pcm(struct page *page)
 	} else {
 		printk(KERN_ALERT "removing page from LRU failed\n");
 		put_page(page);
-		return 0;
 	}
 	if (!list_empty(&source)) {
-		ret = migrate_pages(&source, alloc_migrate_to_pcm,
+		ret = migrate_pages(&source, alloc_migrate_to_dram,
 				    0, MIGRATE_SYNC, MR_MEMORY_HOTPLUG);
-		if (ret)
+		if (ret) {
 			putback_movable_pages(&source);
+		} else {
+			list_move_tail(&page->mq, &dram_zone->mqvec.lists[level]);
+		}
 	}
-
 	return 1;
 }
 
@@ -177,8 +164,6 @@ void check_promote(struct page *p, struct zone *dram_zone, struct zone *pcm_zone
 
 		if (i != j) {
 			if (j-1 < MQ_LEVEL) {
-				//printk("[%s] Move level: %d -> %d\n",
-				//       __func__, j-2,j-1);
 				p->level = j-1;
 				if (!strcmp(zone->name, "Normal")){
 					list_move_tail(&p->mq,
@@ -197,9 +182,26 @@ void check_promote(struct page *p, struct zone *dram_zone, struct zone *pcm_zone
 	}
 
 }
-void ata_rfmq(struct page *page, struct zone *dram_zone, struct zone *pcm_zone)
-{
-	check_promote(page, dram_zone, pcm_zone);
+
+void write_op(struct page *page, pte_t *pte){
+	pte_t reset_pte;
+
+	page->frq++;
+	//printk("%s:%d frq = %d\n", __func__, __LINE__,
+	//       page->frq);
+	reset_pte = pte_mkclean(*pte);
+	set_pte(pte, reset_pte);
+}
+
+void read_op(struct page *page){
+	page->read_count++;
+	if (page->read_count >= READ_WEIGHT) {
+		page->frq++;
+		page->read_count = 0;
+	}
+	//printk("%s:%d read_count = %d\n",__func__, __LINE__,
+       	//		page->read_count);
+
 }
 
 struct page *pte_scan(struct mm_struct *mm, unsigned long address)
@@ -248,23 +250,15 @@ struct page *pte_scan(struct mm_struct *mm, unsigned long address)
 
 	if (pte_young(*pte)) {
 		if (pte_dirty(*pte)){
-			page->frq++;
-	//		printk("%s:%d frq = %d\n", __func__, __LINE__,
-	//		       page->frq);
-			reset_pte = pte_mkclean(*pte);
-			set_pte(pte, reset_pte);
-
+			write_op(page, pte);
 		} else {
-			page->read_count++;
-			if (page->read_count >= READ_WEIGHT) {
-				page->frq++;
-				page->read_count = 0;
-			}
-	//		printk("%s:%d read_count = %d\n",__func__, __LINE__,
-	//		       page->read_count);
+			read_op(page);
 		}
 		reset_pte = pte_mkold(*pte);
 		set_pte(pte, reset_pte);
+
+		do_gettimeofday(&page->expire_time);
+		page->demote_count = 0;
 	}
 
 	pte_unmap_unlock(pte, ptl);
@@ -273,6 +267,8 @@ struct page *pte_scan(struct mm_struct *mm, unsigned long address)
 out:
 	return NULL;
 }
+
+
 
 
 int vm_scan(struct task_struct *task, struct zone *dram_zone, struct zone *pcm_zone)
@@ -321,7 +317,8 @@ int vm_scan(struct task_struct *task, struct zone *dram_zone, struct zone *pcm_z
 					count++;
 				//	printk("DRAM\n");
 				}
-				ata_rfmq(page, dram_zone, pcm_zone);
+
+				check_promote(page, dram_zone, pcm_zone);
 			}
 		}
 		vma = vma->vm_next;
@@ -331,6 +328,27 @@ int vm_scan(struct task_struct *task, struct zone *dram_zone, struct zone *pcm_z
 	up_read(&mm->mmap_sem);
 
 	return ret;
+}
+
+void demote_check(struct list_head *src, struct list_head *victim_list){
+	struct timeval cur_time;
+	struct page *page;
+	do_gettimeofday(&cur_time);
+
+	list_for_each_entry(page, src, mq){
+		if (cur_time.tv_sec != page->expire_time.tv_sec ||
+		    cur_time.tv_usec - page->expire_time.tv_usec > LIFE_TIME) {
+			page->demote_count++;
+			do_gettimeofday(&page->expire_time);
+		}
+
+		if (page->demote_count >= DEMOTE_TH) {
+			if (list_empty(&page->victim)) {
+				list_move_tail(&page->victim,
+					       victim_list);
+			}
+		}
+	}
 }
 
 struct zone* find_dram_zone(void)
@@ -357,12 +375,39 @@ struct zone* find_pcm_zone(void)
 	return NULL;
 }
 
-void mqvec_init(struct mqvec *mqvec) {
-	int mq;
+static int aging(void *data)
+{
+	struct zone *dram_zone;
+	struct mqvec *dram_mqvec;
+	int level;
+	int iter = 0;
 
-	for_each_mq(mq) {
-		INIT_LIST_HEAD(&mqvec->lists[mq]);
+	dram_zone = find_dram_zone();
+	dram_mqvec = &dram_zone->mqvec;
+
+	while (1) {
+		for (level = 0; level < MQ_LEVEL; level++) {
+			if (!list_empty(&dram_mqvec->lists[level])) {
+				demote_check(&dram_mqvec->lists[level],
+					     &dram_mqvec->victim_list);
+			}
+		}
+
+		iter++;
+		if (iter >= 1000000) {
+			iter = 0;
+			print_victim(dram_zone);
+		}
+		usleep_range(SLEEP_TIME,SLEEP_TIME);
 	}
+	return 0;
+}
+
+void create_aging_th(void)
+{
+	struct task_struct *task;
+
+	task = kthread_run(aging, NULL, "aging");
 }
 
 int main_process_scan(void)
@@ -383,6 +428,8 @@ int main_process_scan(void)
 
 	mqvec_init(&dram_zone->mqvec);
 	mqvec_init(&pcm_zone->mqvec);
+
+	create_aging_th();
 
 	while(count--) {
 		for_each_possible_cpu(cpu){

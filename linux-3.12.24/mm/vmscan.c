@@ -2174,6 +2174,8 @@ static inline bool should_continue_reclaim(struct zone *zone,
 
 //ychoijy
 
+
+
 struct zone* find_pcm_zone(void){
 	struct zone *zone;
 
@@ -2247,14 +2249,11 @@ static int migrate_mq_pages(unsigned long nr_to_scan, struct list_head *src)
 		ret = isolate_lru_page(page);
 
 		if (!ret) { /* Success */
-			printk("isolate_lru_OK!!!\n");
 			put_page(page);
 			list_add_tail(&page->lru, &source);
-			nr_taken += 1;
 			inc_zone_page_state(page, NR_ISOLATED_ANON +
 					    page_is_file_cache(page));
 		} else {
-			printk("fail fail fail fail\n");
 			put_page(page);
 			scan -= 1;
 		}
@@ -2264,7 +2263,6 @@ static int migrate_mq_pages(unsigned long nr_to_scan, struct list_head *src)
 					    MIGRATE_SYNC, MR_MEMORY_HOTPLUG);
 			if (ret) {
 				putback_movable_pages(&source);
-				nr_taken -= 1;
 				printk("fail migrate\n");
 			} else {
 				struct page *page;
@@ -2272,15 +2270,12 @@ static int migrate_mq_pages(unsigned long nr_to_scan, struct list_head *src)
 				list_for_each_entry(page, &source, lru) {
 					reset_page_stat(&zone->mqvec.wait_list, page);
 				}
-
-				printk("Success migrate DRAM->PCM #%d\n", nr_taken);
-				printk("Success migrate DRAM->PCM #%d\n", nr_taken);
-				printk("Success migrate DRAM->PCM #%d\n", nr_taken);
-				printk("Success migrate DRAM->PCM #%d\n", nr_taken);
+				nr_taken += 1;
 			}
 		}
 	}
 
+	printk("Migration success DRAM->PCM:   nr_taken = %d\n", nr_taken);
 	return nr_taken;
 }
 
@@ -2291,19 +2286,13 @@ static int shrink_mq(struct mqvec *mqvec, struct scan_control *sc)
 	int level;
 
 	if (!list_empty(&mqvec->victim_list)) {
-		printk("victim_list\n");
 		nr_taken = migrate_mq_pages(nr_to_reclaim, &mqvec->victim_list);
-	} else {
-		printk("victim_list is empty\n");
 	}
 
 	for(level = 0; level < MQ_LEVEL && nr_taken <= nr_to_reclaim; level++) {
 		if (!list_empty(&mqvec->lists[level])) {
-			printk("mq %d level list\n", level);
 			nr_taken += migrate_mq_pages(nr_to_reclaim,
 						     &mqvec->lists[level]);
-		} else {
-			printk("mq %d level is empty\n", level);
 		}
 	}
 	return nr_taken;
@@ -2313,16 +2302,13 @@ static int shrink_mq(struct mqvec *mqvec, struct scan_control *sc)
 static void shrink_zone(struct zone *zone, struct scan_control *sc)
 {
 	unsigned long nr_reclaimed, nr_scanned;
-#if 0
 	//ychoijy
 	int nr_taken;
 	if (!strcmp(zone->name, "Normal")) {
-		printk("DRAM shrink_zone\n");
 		nr_taken = shrink_mq(&zone->mqvec, sc);
 		printk("<<%d>> page migration....\n", nr_taken);
 	} else {
 	//eychoijy
-#endif
 		do {
 			struct mem_cgroup *root = sc->target_mem_cgroup;
 			struct mem_cgroup_reclaim_cookie reclaim = {
@@ -2366,7 +2352,7 @@ static void shrink_zone(struct zone *zone, struct scan_control *sc)
 
 		} while (should_continue_reclaim(zone, sc->nr_reclaimed - nr_reclaimed,
 						 sc->nr_scanned - nr_scanned, sc));
-//	}
+	}
 }
 
 /* Returns true if compaction should go ahead for a high-order request */

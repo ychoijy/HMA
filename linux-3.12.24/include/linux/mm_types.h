@@ -187,8 +187,8 @@ struct page {
 	int pre_level;
 	int read_count;
 	int frq;
-	int victim_count;
 	int demote_count;
+	struct timeval expire_time;
 	//eychoijy
 }
 /*

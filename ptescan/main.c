@@ -8,7 +8,7 @@
 
 #define MEMORY_ALLOC_NUM	100
 #define MEMORY_ALLOC_SIZE	30*1024*1024
-#define LOOP_NUM		35
+#define LOOP_NUM		40
 
 int main(void)
 {
@@ -21,7 +21,6 @@ int main(void)
 
 	for (intTmp2=0; intTmp2<intMemAllocCt; intTmp2++) {
 		cpStr[intTmp2] = (char *)malloc(intMemSize);
-		printf("Child %d , Memory Allocate : %d\n", getpid(), intTmp2);
 	}
 
 	for (i=0;i<LOOP_NUM;i++){

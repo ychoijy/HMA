@@ -114,6 +114,7 @@ void mqvec_init(struct mqvec *mqvec)
 	INIT_LIST_HEAD(&mqvec->wait_list);
 	INIT_LIST_HEAD(&mqvec->victim_list);
 }
+EXPORT_SYMBOL(mqvec_init);
 //eychoijy
 
 #if defined(CONFIG_NUMA_BALANCING) && !defined(LAST_NID_NOT_IN_PAGE_FLAGS)

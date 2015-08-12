@@ -838,6 +838,7 @@ deps_/home/ychoijy/HMA/ptescan/pte_scan.o := \
     $(wildcard include/config/intel/iommu.h) \
     $(wildcard include/config/amd/iommu.h) \
   include/linux/pm_wakeup.h \
+  include/linux/kthread.h \
 
 /home/ychoijy/HMA/ptescan/pte_scan.o: $(deps_/home/ychoijy/HMA/ptescan/pte_scan.o)
 
