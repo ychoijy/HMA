@@ -22,6 +22,9 @@
 struct task_struct *get_rq_task(int cpu);
 extern int isolate_lru_page(struct page *page);
 
+
+struct task_struct *task;
+
 void print_victim(struct zone *dram_zone)
 {
 	unsigned long count;
@@ -73,13 +76,7 @@ void print_mq(struct zone *dram_zone, struct zone *pcm_zone)
 	printk("=======================\n");
 }
 
-struct page *alloc_migrate_to_dram(struct page *page, unsigned long private,
-				  int **resultp)
-{
-	gfp_t gfp_mask = GFP_USER | __GFP_MOVABLE | __GFP_DRAM;
 
-	return alloc_page(gfp_mask);
-}
 struct page *alloc_migrate_to_pcm(struct page *page, unsigned long private,
 				  int **resultp)
 {
@@ -88,42 +85,42 @@ struct page *alloc_migrate_to_pcm(struct page *page, unsigned long private,
 	return alloc_page(gfp_mask);
 }
 
-int migrate_to_dram(struct page *page, struct zone *dram_zone, int level)
+void prep_migrate_to_dram(pte_t *pte)
+{
+	pte_t reset_pte;
+
+	reset_pte = pte_mklazymigration(*pte);
+	reset_pte = pte_mknotpresent(*pte);
+
+	set_pte(pte, reset_pte);
+}
+
+int prep_isolate_page(struct page *page)
 {
 	int ret;
-	LIST_HEAD(source);
 
 	if (!get_page_unless_zero(page)){
 		return 0;
 	}
 	ret = isolate_lru_page(page);
 	if (!ret) { /* Success */
-		printk("Succes isolate_lru_page\n");
 		put_page(page);
-		list_add_tail(&page->lru, &source);
 		inc_zone_page_state(page,
 				    NR_ISOLATED_ANON + page_is_file_cache(page));
+		return 1;
 	} else {
-		printk(KERN_ALERT "removing page from LRU failed\n");
 		put_page(page);
 	}
-	if (!list_empty(&source)) {
-		ret = migrate_pages(&source, alloc_migrate_to_dram,
-				    0, MIGRATE_SYNC, MR_MEMORY_HOTPLUG);
-		if (ret) {
-			putback_movable_pages(&source);
-		} else {
-			list_move_tail(&page->mq, &dram_zone->mqvec.lists[level]);
-		}
-	}
-	return 1;
+
+	return 0;
 }
 
-void check_promote(struct page *p, struct zone *dram_zone, struct zone *pcm_zone)
+void check_promote(pte_t *pte, struct zone *dram_zone, struct zone *pcm_zone)
 {
 	int i=0, j=0;
 	int pre = p->frq - 1;
 	int cur = p->frq;
+	struct page *p = pte_page(pte);
 	struct zone *zone = page_zone(p);
 	/*
 	 *	The pre 0 CASE
@@ -138,6 +135,7 @@ void check_promote(struct page *p, struct zone *dram_zone, struct zone *pcm_zone
 		if (!list_empty(&p->wait)) {	// wait_list -> DRAM or PCM
 			list_del_init(&p->wait);
 
+			p->level = 0;
 			if (p->pre_level >= MQ_MIGRATE_TH) {	//  wait_list -> DRAM
 #ifdef DEBUG
 				printk("[%s] : Wait_list -> DRAM\n",
@@ -145,7 +143,9 @@ void check_promote(struct page *p, struct zone *dram_zone, struct zone *pcm_zone
 #endif
 				printk("p->prelevel = %d\n",
 				       p->pre_level);
-				migrate_to_dram(p, dram_zone, 0);
+				if (prep_isolate_page(p)) {
+					prep_migrate_to_dram(pte);
+				}
 
 			} else {	// wait_list -> PCM
 #ifdef DEBUG
@@ -170,7 +170,9 @@ void check_promote(struct page *p, struct zone *dram_zone, struct zone *pcm_zone
 						       &dram_zone->mqvec.lists[j-1]);
 				} else {
 					if ((j-1) >= MQ_MIGRATE_TH) {
-						migrate_to_dram(p, dram_zone, j-1);
+						if (prep_isolate_page(p)) {
+							prep_migrate_to_dram(pte);
+						}
 					} else {
 						list_move_tail(&p->mq,
 							       &pcm_zone->mqvec.lists[j-1]);
@@ -204,7 +206,8 @@ void read_op(struct page *page){
 
 }
 
-struct page *pte_scan(struct mm_struct *mm, unsigned long address)
+int *pte_scan(struct mm_struct *mm, unsigned long address,
+		struct zone *dram_zone, struct zone *pcm_zone)
 {
 	struct page *page;
 	pgd_t *pgd;
@@ -212,7 +215,6 @@ struct page *pte_scan(struct mm_struct *mm, unsigned long address)
 	pmd_t *pmd;
 	pte_t *pte;
 	pte_t reset_pte;
-	unsigned long pfn;
 	spinlock_t *ptl;
 
 	pgd = pgd_offset(mm, address);
@@ -245,7 +247,6 @@ struct page *pte_scan(struct mm_struct *mm, unsigned long address)
 /*
  *  I will add page's information here
  */
-	pfn = pte_pfn(*pte);
 	page = pte_page(*pte);
 
 	if (pte_young(*pte)) {
@@ -261,27 +262,34 @@ struct page *pte_scan(struct mm_struct *mm, unsigned long address)
 		page->demote_count = 0;
 	}
 
+	zone = page_zone(page);
+
+	if (!strcmp(zone->name, "DMA")) {
+		continue;
+	} else {
+		if (!strcmp(zone->name, "PCM")
+		    || !strcmp(zone->name, "DMA32")) {
+			//	printk("PCM or DMA32\n");
+		} else if (!strcmp(zone->name, "Normal")){
+			//	printk("DRAM\n");
+		}
+
+		check_promote(pte, dram_zone, pcm_zone);
+	}
+
 	pte_unmap_unlock(pte, ptl);
 
-	return page;
+	return 1;
 out:
-	return NULL;
+	return 0;
 }
 
-
-
-
-int vm_scan(struct task_struct *task, struct zone *dram_zone, struct zone *pcm_zone)
+void vm_scan(struct task_struct *task, struct zone *dram_zone, struct zone *pcm_zone)
 {
 	struct mm_struct *mm;
 	struct vm_area_struct *vma;
-	unsigned long i;
+	unsigned long addr;
 	int ret = 0;
-	struct page *page;
-	struct zone *zone;
-	unsigned long count = 0;
-
-	LIST_HEAD(source);
 
 	mm = get_task_mm(task);
 
@@ -301,33 +309,12 @@ int vm_scan(struct task_struct *task, struct zone *dram_zone, struct zone *pcm_z
 	vma = mm->mmap;
 
 	while(vma){
-		for(i = vma->vm_start ; i < vma->vm_end; i += PAGE_SIZE) {
-			page = pte_scan(mm, i);
-			if (page == NULL) continue;
-
-			zone = page_zone(page);
-
-			if (!strcmp(zone->name, "DMA")) {
-				continue;
-			} else {
-				if (!strcmp(zone->name, "PCM")
-				    || !strcmp(zone->name, "DMA32")) {
-				//	printk("PCM or DMA32\n");
-				} else if (!strcmp(zone->name, "Normal")){
-					count++;
-				//	printk("DRAM\n");
-				}
-
-				check_promote(page, dram_zone, pcm_zone);
-			}
+		for(addr = vma->vm_start ; addr < vma->vm_end; addr += PAGE_SIZE) {
+			ret = pte_scan(mm, addr, dram_zone, pcm_zone);
 		}
 		vma = vma->vm_next;
 	}
-	printk("count = %ld\n", count);
-
 	up_read(&mm->mmap_sem);
-
-	return ret;
 }
 
 void demote_check(struct list_head *src, struct list_head *victim_list){
@@ -385,7 +372,7 @@ static int aging(void *data)
 	dram_zone = find_dram_zone();
 	dram_mqvec = &dram_zone->mqvec;
 
-	while (1) {
+	while (!kthread_should_stop()) {
 		for (level = 0; level < MQ_LEVEL; level++) {
 			if (!list_empty(&dram_mqvec->lists[level])) {
 				demote_check(&dram_mqvec->lists[level],
@@ -405,7 +392,6 @@ static int aging(void *data)
 
 void create_aging_th(void)
 {
-	struct task_struct *task;
 
 	task = kthread_run(aging, NULL, "aging");
 }
@@ -463,6 +449,10 @@ int __init init_pte_scan(void)
 
 void __exit exit_pte_scan(void)
 {
+	if (task) {
+		kthread_stop(task);
+		task = NULL;
+	}
 }
 
 module_init(init_pte_scan);

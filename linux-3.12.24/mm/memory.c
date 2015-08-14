@@ -3679,6 +3679,64 @@ static int do_pmd_numa_page(struct mm_struct *mm, struct vm_area_struct *vma,
 }
 #endif /* CONFIG_NUMA_BALANCING */
 
+//ychoijy
+struct page *alloc_migrate_to_dram(struct page *page, unsigned long private,
+				  int **resultp)
+{
+	gfp_t gfp_mask = GFP_USER | __GFP_MOVABLE | __GFP_DRAM;
+
+	return alloc_page(gfp_mask);
+}
+
+static int do_lazy_migration(struct mm_struct *mm, pte_t *pte, pmd_t *pmd)
+{
+	struct page *page;
+	pte_t entry;
+	spinlock_t *ptl;
+	int ret;
+	struct zone *dram_zone = NULL;
+	LIST_HEAD(source);
+
+	for_each_zone(dram_zone) {
+		if (!strcmp(dram_zone->name, "Normal")) {
+			break;
+		}
+	}
+
+	if (!dram_zone) {
+		printk("%s%d : DRAM zone is not founded!!\n", __func__, __LINE__);
+		return 0;
+	}
+
+
+	ptl = pte_lockptr(mm, pmd);
+	spin_lock(ptl);
+
+	entry = *pte;
+	entry = pte_mknotlazymigration(entry);
+	entry = pte_mkpresent(entry);
+
+	set_pte(pte, entry);
+
+	pte_unmap_unlock(pte, ptl);
+
+	page = pte_page(*pte);
+
+	list_add_tail(&page->lru, &source);
+
+	ret = migrate_pages(&source, alloc_migrate_to_dram,
+			    0, MIGRATE_SYNC, MR_NUMA_MISPLACED);
+
+	if (ret) {
+		putback_movable_pages(&source);
+	} else {
+		list_move_tail(&page->mq, &dram_zone->mqvec.lists[page->level]);
+	}
+
+	return 0;
+}
+//eychoijy
+
 /*
  * These routines also need to handle stuff like marking pages dirty
  * and/or accessed for architectures that don't do it in hardware (most
@@ -3710,6 +3768,11 @@ static int handle_pte_fault(struct mm_struct *mm,
 			return do_anonymous_page(mm, vma, address,
 						 pte, pmd, flags);
 		}
+		//ychoijy
+		if (pte_lazy_mig(entry)) {
+			return do_lazy_migration(mm, pte, pmd);
+		}
+		//eychoijy
 		if (pte_file(entry))
 			return do_nonlinear_fault(mm, vma, address,
 					pte, pmd, flags, entry);

@@ -108,6 +108,13 @@ static inline int pte_write(pte_t pte)
 	return pte_flags(pte) & _PAGE_RW;
 }
 
+//ychoijy
+static inline int pte_lazy_mig(pte_t pte)
+{
+	return pte_flags(pte) & _PAGE_LAZY_MIG;
+}
+//eychoijy
+
 static inline int pte_file(pte_t pte)
 {
 	return pte_flags(pte) & _PAGE_FILE;
@@ -185,6 +192,28 @@ static inline pte_t pte_clear_flags(pte_t pte, pteval_t clear)
 
 	return native_make_pte(v & ~clear);
 }
+
+//ychoijy
+static inline pte_t pte_mknotpresent(pte_t pte)
+{
+	return pte_clear_flags(pte, _PAGE_PRESENT);
+}
+
+static inline pte_t pte_mknotlazymigration(pte_t pte)
+{
+	return pte_clear_flags(pte, _PAGE_LAZY_MIG);
+}
+
+static inline pte_t pte_mkpresent(pte_t pte)
+{
+	return pte_set_flags(pte, _PAGE_PRESENT);
+}
+
+static inline pte_t pte_mklazymigration(pte_t pte)
+{
+	return pte_set_flags(pte, _PAGE_LAZY_MIG);
+}
+//eychoijy
 
 static inline pte_t pte_mkclean(pte_t pte)
 {

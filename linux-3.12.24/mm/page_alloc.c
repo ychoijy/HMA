@@ -4070,7 +4070,6 @@ void __meminit memmap_init_zone(unsigned long size, int nid, unsigned long zone,
 		page->read_count = 0;
 		page->frq = 0;
 		page->demote_count = 0;
-		page->victim_count = 0;
 		//eychoijy
 		/*
 		 * Mark the block movable so that blocks are reserved for

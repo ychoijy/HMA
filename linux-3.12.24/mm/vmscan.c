@@ -2173,9 +2173,6 @@ static inline bool should_continue_reclaim(struct zone *zone,
 }
 
 //ychoijy
-
-
-
 struct zone* find_pcm_zone(void){
 	struct zone *zone;
 
