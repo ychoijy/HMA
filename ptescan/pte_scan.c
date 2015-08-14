@@ -11,7 +11,7 @@
 #include <linux/mmzone.h>
 #include <linux/kthread.h>
 
-#define MAX_EXE		50
+#define MAX_EXE		300
 #define MQ_MIGRATE_TH	2
 #define DEMOTE_TH	2
 #define LIFE_TIME	100000
@@ -87,12 +87,26 @@ struct page *alloc_migrate_to_pcm(struct page *page, unsigned long private,
 
 void prep_migrate_to_dram(pte_t *pte)
 {
-	pte_t reset_pte;
+	pte_t entry;
 
-	reset_pte = pte_mklazymigration(*pte);
-	reset_pte = pte_mknotpresent(*pte);
+	entry = pte_mknotpresent(*pte);
+	set_pte(pte, entry);
 
-	set_pte(pte, reset_pte);
+	entry = pte_mklazymigration(*pte);
+	set_pte(pte, entry);
+
+
+	if (!pte_present(*pte)){
+		printk("pte not present set is ok!!!!\n");
+	} else {
+		printk("1123412312312312313123212312\n");
+	}
+
+	if (pte_lazy_mig(*pte)) {
+		printk("pte lazy_mig set is ok!!!\n");
+	} else {
+		printk("sdfhjikdfnglksdfngkjldfnglkjdfngkdf\n");
+	}
 }
 
 int prep_isolate_page(struct page *page)
@@ -117,11 +131,11 @@ int prep_isolate_page(struct page *page)
 
 void check_promote(pte_t *pte, struct zone *dram_zone, struct zone *pcm_zone)
 {
+	struct page *p = pte_page(*pte);
+	struct zone *zone = page_zone(p);
 	int i=0, j=0;
 	int pre = p->frq - 1;
 	int cur = p->frq;
-	struct page *p = pte_page(pte);
-	struct zone *zone = page_zone(p);
 	/*
 	 *	The pre 0 CASE
 	 *  		1. dram's level 0 because of demotion -> pass
@@ -163,11 +177,11 @@ void check_promote(pte_t *pte, struct zone *dram_zone, struct zone *pcm_zone)
 			cur = cur >> 1;
 
 		if (i != j) {
-			if (j-1 < MQ_LEVEL) {
-				p->level = j-1;
+			p->level = j-1;
+			if (p->level < MQ_LEVEL) {
 				if (!strcmp(zone->name, "Normal")){
 					list_move_tail(&p->mq,
-						       &dram_zone->mqvec.lists[j-1]);
+						       &dram_zone->mqvec.lists[p->level]);
 				} else {
 					if ((j-1) >= MQ_MIGRATE_TH) {
 						if (prep_isolate_page(p)) {
@@ -175,7 +189,7 @@ void check_promote(pte_t *pte, struct zone *dram_zone, struct zone *pcm_zone)
 						}
 					} else {
 						list_move_tail(&p->mq,
-							       &pcm_zone->mqvec.lists[j-1]);
+							&pcm_zone->mqvec.lists[p->level]);
 					}
 
 				}
@@ -206,10 +220,11 @@ void read_op(struct page *page){
 
 }
 
-int *pte_scan(struct mm_struct *mm, unsigned long address,
+int pte_scan(struct mm_struct *mm, unsigned long address,
 		struct zone *dram_zone, struct zone *pcm_zone)
 {
 	struct page *page;
+	struct zone *zone;
 	pgd_t *pgd;
 	pud_t *pud;
 	pmd_t *pmd;
@@ -265,7 +280,7 @@ int *pte_scan(struct mm_struct *mm, unsigned long address,
 	zone = page_zone(page);
 
 	if (!strcmp(zone->name, "DMA")) {
-		continue;
+		//
 	} else {
 		if (!strcmp(zone->name, "PCM")
 		    || !strcmp(zone->name, "DMA32")) {
@@ -284,7 +299,7 @@ out:
 	return 0;
 }
 
-void vm_scan(struct task_struct *task, struct zone *dram_zone, struct zone *pcm_zone)
+int vm_scan(struct task_struct *task, struct zone *dram_zone, struct zone *pcm_zone)
 {
 	struct mm_struct *mm;
 	struct vm_area_struct *vma;
@@ -315,6 +330,8 @@ void vm_scan(struct task_struct *task, struct zone *dram_zone, struct zone *pcm_
 		vma = vma->vm_next;
 	}
 	up_read(&mm->mmap_sem);
+
+	return 1;
 }
 
 void demote_check(struct list_head *src, struct list_head *victim_list){
@@ -431,10 +448,10 @@ int main_process_scan(void)
 				printk("%dth vm_scan start %s\n", count, curr->comm);
 				vm_scan(curr, dram_zone, pcm_zone);
 				put_task_struct(curr);
+				print_mq(dram_zone, pcm_zone);
 			}
 		}
-		print_mq(dram_zone, pcm_zone);
-		msleep(1000);
+		msleep(100);
 	}
 
 	return 0;

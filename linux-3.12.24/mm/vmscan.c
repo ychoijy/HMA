@@ -2299,12 +2299,15 @@ static int shrink_mq(struct mqvec *mqvec, struct scan_control *sc)
 static void shrink_zone(struct zone *zone, struct scan_control *sc)
 {
 	unsigned long nr_reclaimed, nr_scanned;
+
 	//ychoijy
 	int nr_taken;
+/*
 	if (!strcmp(zone->name, "Normal")) {
 		nr_taken = shrink_mq(&zone->mqvec, sc);
 		printk("<<%d>> page migration....\n", nr_taken);
 	} else {
+*/
 	//eychoijy
 		do {
 			struct mem_cgroup *root = sc->target_mem_cgroup;
@@ -2349,7 +2352,7 @@ static void shrink_zone(struct zone *zone, struct scan_control *sc)
 
 		} while (should_continue_reclaim(zone, sc->nr_reclaimed - nr_reclaimed,
 						 sc->nr_scanned - nr_scanned, sc));
-	}
+//	}
 }
 
 /* Returns true if compaction should go ahead for a high-order request */

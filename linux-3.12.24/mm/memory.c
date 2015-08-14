@@ -3685,6 +3685,7 @@ struct page *alloc_migrate_to_dram(struct page *page, unsigned long private,
 {
 	gfp_t gfp_mask = GFP_USER | __GFP_MOVABLE | __GFP_DRAM;
 
+	printk("%s%d : fault handler is OK!!\n", __func__, __LINE__);
 	return alloc_page(gfp_mask);
 }
 
@@ -3770,6 +3771,7 @@ static int handle_pte_fault(struct mm_struct *mm,
 		}
 		//ychoijy
 		if (pte_lazy_mig(entry)) {
+			printk("%s%d: is lazy mig? \n", __func__, __LINE__);
 			return do_lazy_migration(mm, pte, pmd);
 		}
 		//eychoijy

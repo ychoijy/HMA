@@ -49,10 +49,10 @@
 #define _PAGE_SPLITTING	(_AT(pteval_t, 1) << _PAGE_BIT_SPLITTING)
 #define __HAVE_ARCH_PTE_SPECIAL
 
-//ychoijy
-#define _PAGE_BIT_LAZY_MIG	13	/* lazy migration */
+/* ychoijy */
+#define _PAGE_BIT_LAZY_MIG	_PAGE_BIT_UNUSED1	/* lazy migration */
 #define _PAGE_LAZY_MIG	(_AT(pteval_t, 1) << _PAGE_BIT_LAZY_MIG)
-//eychoijy
+/* eychoijy */
 
 #ifdef CONFIG_KMEMCHECK
 #define _PAGE_HIDDEN	(_AT(pteval_t, 1) << _PAGE_BIT_HIDDEN)
