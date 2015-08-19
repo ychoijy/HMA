@@ -76,15 +76,6 @@ void print_mq(struct zone *dram_zone, struct zone *pcm_zone)
 	printk("=======================\n");
 }
 
-
-struct page *alloc_migrate_to_pcm(struct page *page, unsigned long private,
-				  int **resultp)
-{
-	gfp_t gfp_mask = GFP_USER | __GFP_MOVABLE;
-
-	return alloc_page(gfp_mask);
-}
-
 void prep_migrate_to_dram(pte_t *pte)
 {
 	pte_t entry;
@@ -92,42 +83,10 @@ void prep_migrate_to_dram(pte_t *pte)
 	entry = pte_mknotpresent(*pte);
 	set_pte(pte, entry);
 
-	entry = pte_mklazymigration(*pte);
+	entry = pte_mkdrammigration(*pte);
 	set_pte(pte, entry);
-
-
-	if (!pte_present(*pte)){
-		printk("pte not present set is ok!!!!\n");
-	} else {
-		printk("1123412312312312313123212312\n");
-	}
-
-	if (pte_lazy_mig(*pte)) {
-		printk("pte lazy_mig set is ok!!!\n");
-	} else {
-		printk("sdfhjikdfnglksdfngkjldfnglkjdfngkdf\n");
-	}
 }
 
-int prep_isolate_page(struct page *page)
-{
-	int ret;
-
-	if (!get_page_unless_zero(page)){
-		return 0;
-	}
-	ret = isolate_lru_page(page);
-	if (!ret) { /* Success */
-		put_page(page);
-		inc_zone_page_state(page,
-				    NR_ISOLATED_ANON + page_is_file_cache(page));
-		return 1;
-	} else {
-		put_page(page);
-	}
-
-	return 0;
-}
 
 void check_promote(pte_t *pte, struct zone *dram_zone, struct zone *pcm_zone)
 {
@@ -353,30 +312,6 @@ void demote_check(struct list_head *src, struct list_head *victim_list){
 			}
 		}
 	}
-}
-
-struct zone* find_dram_zone(void)
-{
-	struct zone *zone;
-
-	for_each_zone(zone) {
-		if (!strcmp(zone->name, "Normal")) {
-			return zone;
-		}
-	}
-	return NULL;
-}
-
-struct zone* find_pcm_zone(void)
-{
-	struct zone *zone;
-
-	for_each_zone(zone) {
-		if (!strcmp(zone->name, "PCM")) {
-			return zone;
-		}
-	}
-	return NULL;
 }
 
 static int aging(void *data)

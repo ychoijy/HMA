@@ -81,6 +81,12 @@ static inline void get_page_foll(struct page *page)
 extern unsigned long highest_memmap_pfn;
 
 /*
+ * in mm/memory.c:
+ */
+
+extern int prep_isolate_page(struct page *page);
+
+/*
  * in mm/vmscan.c:
  */
 extern int isolate_lru_page(struct page *page);

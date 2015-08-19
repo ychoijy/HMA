@@ -109,9 +109,14 @@ static inline int pte_write(pte_t pte)
 }
 
 //ychoijy
-static inline int pte_lazy_mig(pte_t pte)
+static inline int pte_dram_mig(pte_t pte)
 {
-	return pte_flags(pte) & _PAGE_LAZY_MIG;
+	return pte_flags(pte) & _PAGE_DRAM_MIG;
+}
+
+static inline int pte_pcm_mig(pte_t pte)
+{
+	return pte_flags(pte) & _PAGE_PCM_MIG;
 }
 //eychoijy
 
@@ -199,9 +204,14 @@ static inline pte_t pte_mknotpresent(pte_t pte)
 	return pte_clear_flags(pte, _PAGE_PRESENT);
 }
 
-static inline pte_t pte_mknotlazymigration(pte_t pte)
+static inline pte_t pte_mknotdrammigration(pte_t pte)
 {
-	return pte_clear_flags(pte, _PAGE_LAZY_MIG);
+	return pte_clear_flags(pte, _PAGE_DRAM_MIG);
+}
+
+static inline pte_t pte_mknotpcmmigration(pte_t pte)
+{
+	return pte_clear_flags(pte, _PAGE_PCM_MIG);
 }
 
 static inline pte_t pte_mkpresent(pte_t pte)
@@ -209,9 +219,14 @@ static inline pte_t pte_mkpresent(pte_t pte)
 	return pte_set_flags(pte, _PAGE_PRESENT);
 }
 
-static inline pte_t pte_mklazymigration(pte_t pte)
+static inline pte_t pte_mkdrammigration(pte_t pte)
 {
-	return pte_set_flags(pte, _PAGE_LAZY_MIG);
+	return pte_set_flags(pte, _PAGE_DRAM_MIG);
+}
+
+static inline pte_t pte_mkpcmmigration(pte_t pte)
+{
+	return pte_set_flags(pte, _PAGE_PCM_MIG);
 }
 //eychoijy
 

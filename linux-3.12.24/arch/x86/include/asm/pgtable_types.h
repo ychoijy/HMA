@@ -50,8 +50,10 @@
 #define __HAVE_ARCH_PTE_SPECIAL
 
 /* ychoijy */
-#define _PAGE_BIT_LAZY_MIG	_PAGE_BIT_UNUSED1	/* lazy migration */
-#define _PAGE_LAZY_MIG	(_AT(pteval_t, 1) << _PAGE_BIT_LAZY_MIG)
+#define _PAGE_BIT_DRAM_MIG	61	/* PCM->DRAM migration */
+#define _PAGE_BIT_PCM_MIG	62
+#define _PAGE_DRAM_MIG	(_AT(pteval_t, 1) << _PAGE_BIT_DRAM_MIG)
+#define _PAGE_PCM_MIG	(_AT(pteval_t, 1) << _PAGE_BIT_PCM_MIG)
 /* eychoijy */
 
 #ifdef CONFIG_KMEMCHECK

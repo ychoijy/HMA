@@ -2173,117 +2173,90 @@ static inline bool should_continue_reclaim(struct zone *zone,
 }
 
 //ychoijy
-struct zone* find_pcm_zone(void){
-	struct zone *zone;
+int prep_migrate_to_pcm(struct page *page, struct vm_area_struct *vma,
+			 unsigned long address)
+{
+	struct mm_struct *mm = vma->vm_mm;
+	pte_t *pte;
+	pte_t entry;
+	spinlock_t *ptl;
+	int ret = SWAP_AGAIN;
 
-	for_each_zone(zone) {
-		if (!strcmp(zone->name, "PCM")) {
-			return zone;
-		}
-	}
-	return NULL;
+	pte = page_check_address(page, mm, address, &ptl, 0);
+	if (!pte)
+		return 0;
+
+	entry = pte_mknotpresent(*pte);
+	set_pte(pte, entry);
+
+	entry = pte_mkpcmmigration(*pte);
+	set_pte(pte, entry);
+
+	return 0;
 }
 
-static struct page *alloc_pcm(struct page *page, unsigned long private,
-				  int **resultp)
+int try_to_get_pte(struct page *page)
 {
-	gfp_t gfp_mask = GFP_USER | __GFP_MOVABLE;
+	struct anon_vma *anon_vma;
+	pgoff_t pgoff;
+	struct anon_vma_chain *avc;
+	int ret = 0;
 
-	printk("%s:%d\n", __func__, __LINE__);
+	anon_vma = page_lock_anon_vma_read(page);
+	if (!anon_vma)
+		return ret;
 
-	return alloc_page(gfp_mask);
+	pgoff = page->index << (PAGE_CACHE_SHIFT - PAGE_SHIFT);
+	anon_vma_interval_tree_foreach(avc, &anon_vma->rb_root, pgoff, pgoff) {
+		struct vm_area_struct *vma = avc->vma;
+		unsigned long address;
+
+		address = vma_address(page, vma);
+		ret = prep_migrate_to_pcm(page, vma, address);
+	}
+	page_unlock_anon_vma_read(anon_vma);
+	return ret;
 }
 
-void reset_page_stat(struct list_head *wait_list, struct page *p)
+int page_migration(struct page *page)
 {
-	p->read_count = 0;
-	p->frq = 0;
+	int ret;
 
-	if (p->pre_level == 0) {
-		p->pre_level = p->level;
-	} else {
-		p->pre_level = (p->pre_level + p->level) / 2;
-	}
-	p->level = 0;
+	if (PageAnon(page))
+		ret = try_to_get_pte(page);
+	else
+		ret = 0;
 
-	if (!list_empty(&p->mq)) {
-		list_del_init(&p->mq);
-		list_move_tail(&p->wait, wait_list);
-	}
-
-	if (!list_empty(&p->victim)) {
-		list_del_init(&p->victim);
-	}
-
+	return ret;
 }
 
 static int migrate_mq_pages(unsigned long nr_to_scan, struct list_head *src)
 {
-	unsigned long scan;
-	struct zone *zone = find_pcm_zone();
-	struct list_head *cur = src->next;
-	int ret = 0;
-	int nr_taken = 0;
+	struct page *page;
+	unsigned long nr_taken = 1;
 
-	for (scan = 1; scan <= nr_to_scan && src != cur; scan++) {
-		LIST_HEAD(source);
-		struct page *page;
-
-		page = mq_to_page(cur);
-
-		if (!page)
+	list_for_each_entry(page, src, lru) {
+		if (nr_taken > nr_to_scan) {
 			break;
-
-		cur = cur->next;
-
-		if (!get_page_unless_zero(page)) {
-			continue;
-		}
-		/*
-		 * We can skip free pages. And we can only deal with pages on
-		 * LRU.
-		 */
-		ret = isolate_lru_page(page);
-
-		if (!ret) { /* Success */
-			put_page(page);
-			list_add_tail(&page->lru, &source);
-			inc_zone_page_state(page, NR_ISOLATED_ANON +
-					    page_is_file_cache(page));
-		} else {
-			put_page(page);
-			scan -= 1;
 		}
 
-		if (!list_empty(&source)) {
-			ret = migrate_pages(&source, alloc_pcm, 0,
-					    MIGRATE_SYNC, MR_MEMORY_HOTPLUG);
-			if (ret) {
-				putback_movable_pages(&source);
-				printk("fail migrate\n");
-			} else {
-				struct page *page;
-
-				list_for_each_entry(page, &source, lru) {
-					reset_page_stat(&zone->mqvec.wait_list, page);
-				}
-				nr_taken += 1;
-			}
+		if (prep_isolate_page(page)) {
+			page_migration(page);
+			nr_taken++;
 		}
 	}
-
-	printk("Migration success DRAM->PCM:   nr_taken = %d\n", nr_taken);
+	printk("Migration success DRAM->PCM:   nr_taken = %ld\n", nr_taken);
 	return nr_taken;
 }
 
 static int shrink_mq(struct mqvec *mqvec, struct scan_control *sc)
 {
-	int nr_taken=0;
+	int nr_taken = 0;
 	unsigned long nr_to_reclaim = sc->nr_to_reclaim;
 	int level;
 
 	if (!list_empty(&mqvec->victim_list)) {
-		nr_taken = migrate_mq_pages(nr_to_reclaim, &mqvec->victim_list);
+		nr_taken += migrate_mq_pages(nr_to_reclaim, &mqvec->victim_list);
 	}
 
 	for(level = 0; level < MQ_LEVEL && nr_taken <= nr_to_reclaim; level++) {
@@ -2301,7 +2274,7 @@ static void shrink_zone(struct zone *zone, struct scan_control *sc)
 	unsigned long nr_reclaimed, nr_scanned;
 
 	//ychoijy
-	int nr_taken;
+	int nr_taken = 0;
 /*
 	if (!strcmp(zone->name, "Normal")) {
 		nr_taken = shrink_mq(&zone->mqvec, sc);
