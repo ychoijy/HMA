@@ -2180,18 +2180,21 @@ int prep_migrate_to_pcm(struct page *page, struct vm_area_struct *vma,
 	pte_t *pte;
 	pte_t entry;
 	spinlock_t *ptl;
-	int ret = SWAP_AGAIN;
 
 	pte = page_check_address(page, mm, address, &ptl, 0);
-	if (!pte)
+	if (!pte) {
+		printk("%s:%d pte is not present!!!!\n", __func__, __LINE__);
 		return 0;
+	} else {
+		printk("%s:%d address -> %ld\n", __func__, __LINE__, address);
+	}
 
-	entry = pte_mknotpresent(*pte);
+	entry = *pte;
+	entry = pte_mknotpresent(entry);
+	entry = pte_mkpcmmigration(entry);
 	set_pte(pte, entry);
 
-	entry = pte_mkpcmmigration(*pte);
-	set_pte(pte, entry);
-
+	pte_unmap_unlock(pte, ptl);
 	return 0;
 }
 
@@ -2222,49 +2225,55 @@ int page_migration(struct page *page)
 {
 	int ret;
 
-	if (PageAnon(page))
+	if (PageAnon(page)){
+		printk("anon page\n");
 		ret = try_to_get_pte(page);
-	else
+	} else {
+		printk("aaaaaaaaaaaaaaaaaaaaaa\n");
 		ret = 0;
+	}
 
 	return ret;
 }
 
-static int migrate_mq_pages(unsigned long nr_to_scan, struct list_head *src)
+static int migrate_mq_pages(struct list_head *src, struct scan_control *sc)
 {
 	struct page *page;
-	unsigned long nr_taken = 1;
+	struct page *temp;
+	unsigned long nr_to_reclaim = sc->nr_to_reclaim;
+	unsigned long nr_taken = 0;
 
-	list_for_each_entry(page, src, lru) {
-		if (nr_taken > nr_to_scan) {
+	list_for_each_entry_safe(page, temp, src, mq) {
+		if (nr_taken > nr_to_reclaim) {
 			break;
 		}
 
 		if (prep_isolate_page(page)) {
 			page_migration(page);
-			nr_taken++;
+			nr_taken = nr_taken + 1;
 		}
 	}
-	printk("Migration success DRAM->PCM:   nr_taken = %ld\n", nr_taken);
 	return nr_taken;
 }
 
-static int shrink_mq(struct mqvec *mqvec, struct scan_control *sc)
+static int shrink_mq(struct zone *dram_zone, struct scan_control *sc)
 {
 	int nr_taken = 0;
-	unsigned long nr_to_reclaim = sc->nr_to_reclaim;
 	int level;
+	struct mqvec *mqvec = &dram_zone->mqvec;
+	unsigned long nr_to_reclaim = sc->nr_to_reclaim;
 
+	spin_lock(&dram_zone->mq_lock);
 	if (!list_empty(&mqvec->victim_list)) {
-		nr_taken += migrate_mq_pages(nr_to_reclaim, &mqvec->victim_list);
+		nr_taken = nr_taken + migrate_mq_pages(&mqvec->victim_list, sc);
 	}
 
-	for(level = 0; level < MQ_LEVEL && nr_taken <= nr_to_reclaim; level++) {
+	for(level = 0; level < MQ_LEVEL && nr_taken < nr_to_reclaim; level++) {
 		if (!list_empty(&mqvec->lists[level])) {
-			nr_taken += migrate_mq_pages(nr_to_reclaim,
-						     &mqvec->lists[level]);
+			nr_taken = nr_taken + migrate_mq_pages(&mqvec->lists[level], sc);
 		}
 	}
+	spin_unlock(&dram_zone->mq_lock);
 	return nr_taken;
 }
 //eychoijy
@@ -2274,13 +2283,9 @@ static void shrink_zone(struct zone *zone, struct scan_control *sc)
 	unsigned long nr_reclaimed, nr_scanned;
 
 	//ychoijy
-	int nr_taken = 0;
-/*
 	if (!strcmp(zone->name, "Normal")) {
-		nr_taken = shrink_mq(&zone->mqvec, sc);
-		printk("<<%d>> page migration....\n", nr_taken);
+		shrink_mq(zone, sc);
 	} else {
-*/
 	//eychoijy
 		do {
 			struct mem_cgroup *root = sc->target_mem_cgroup;
@@ -2325,7 +2330,7 @@ static void shrink_zone(struct zone *zone, struct scan_control *sc)
 
 		} while (should_continue_reclaim(zone, sc->nr_reclaimed - nr_reclaimed,
 						 sc->nr_scanned - nr_scanned, sc));
-//	}
+	}
 }
 
 /* Returns true if compaction should go ahead for a high-order request */
