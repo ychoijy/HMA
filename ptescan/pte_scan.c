@@ -19,9 +19,12 @@
 
 #define READ_WEIGHT	4
 
-struct task_struct *get_rq_task(int cpu);
+extern struct task_struct *get_rq_task(int cpu);
 extern int isolate_lru_page(struct page *page);
-
+extern int prep_isolate_page(struct page *page);
+extern struct zone* find_pcm_zone(void);
+extern struct zone* find_dram_zone(void);
+extern void flush_tlb_page(struct vm_area_struct *vma, unsigned long start);
 
 struct task_struct *task;
 
@@ -179,8 +182,8 @@ void read_op(struct page *page){
 
 }
 
-int pte_scan(struct mm_struct *mm, unsigned long address,
-		struct zone *dram_zone, struct zone *pcm_zone)
+int pte_scan(struct mm_struct *mm, struct vm_area_struct *vma,
+	     unsigned long address, struct zone *dram_zone, struct zone *pcm_zone)
 {
 	struct page *page;
 	struct zone *zone;
@@ -251,6 +254,7 @@ int pte_scan(struct mm_struct *mm, unsigned long address,
 		check_promote(pte, dram_zone, pcm_zone);
 	}
 
+	flush_tlb_page(vma, address);
 	pte_unmap_unlock(pte, ptl);
 
 	return 1;
@@ -284,7 +288,7 @@ int vm_scan(struct task_struct *task, struct zone *dram_zone, struct zone *pcm_z
 
 	while(vma){
 		for(addr = vma->vm_start ; addr < vma->vm_end; addr += PAGE_SIZE) {
-			ret = pte_scan(mm, addr, dram_zone, pcm_zone);
+			ret = pte_scan(mm, vma, addr, dram_zone, pcm_zone);
 		}
 		vma = vma->vm_next;
 	}
@@ -372,10 +376,6 @@ int main_process_scan(void)
 	while(count--) {
 		for_each_possible_cpu(cpu){
 			curr = get_rq_task(cpu);
-			if (curr == NULL) {
-				printk("curr is NULL\n");
-				return 0;
-			}
 
 			if (!strcmp(curr->comm, "main")){
 				printk("############   cpu : %d   ##########\n", cpu);
@@ -386,7 +386,7 @@ int main_process_scan(void)
 				print_mq(dram_zone, pcm_zone);
 			}
 		}
-		msleep(100);
+		msleep(200);
 	}
 
 	return 0;

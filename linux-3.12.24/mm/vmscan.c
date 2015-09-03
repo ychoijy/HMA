@@ -2191,7 +2191,9 @@ int prep_migrate_to_pcm(struct page *page, struct vm_area_struct *vma,
 
 	entry = pte_mkpcmmigration(*pte);
 	set_pte(pte, entry);
+	flush_tlb_page(vma, address);
 
+	pte_unmap_unlock(pte, ptl);
 	return 0;
 }
 
@@ -2230,13 +2232,13 @@ int page_migration(struct page *page)
 	return ret;
 }
 
-static int migrate_mq_pages(unsigned long nr_to_scan, struct list_head *src)
+static int migrate_mq_pages(unsigned long nr_to_reclaim, struct list_head *src)
 {
 	struct page *page;
 	unsigned long nr_taken = 1;
 
-	list_for_each_entry(page, src, lru) {
-		if (nr_taken > nr_to_scan) {
+	list_for_each_entry(page, src, mq) {
+		if (nr_taken > nr_to_reclaim) {
 			break;
 		}
 
@@ -2275,12 +2277,11 @@ static void shrink_zone(struct zone *zone, struct scan_control *sc)
 
 	//ychoijy
 	int nr_taken = 0;
-/*
+
 	if (!strcmp(zone->name, "Normal")) {
 		nr_taken = shrink_mq(&zone->mqvec, sc);
 		printk("<<%d>> page migration....\n", nr_taken);
 	} else {
-*/
 	//eychoijy
 		do {
 			struct mem_cgroup *root = sc->target_mem_cgroup;
@@ -2325,7 +2326,7 @@ static void shrink_zone(struct zone *zone, struct scan_control *sc)
 
 		} while (should_continue_reclaim(zone, sc->nr_reclaimed - nr_reclaimed,
 						 sc->nr_scanned - nr_scanned, sc));
-//	}
+	}
 }
 
 /* Returns true if compaction should go ahead for a high-order request */

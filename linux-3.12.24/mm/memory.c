@@ -3695,17 +3695,25 @@ int prep_isolate_page(struct page *page)
 {
 	int ret;
 
+	lru_add_drain_all();
+
+	if (PageHuge(page))
+		return 0;
+
+	if (page_mapcount(page) != 1 && page_is_file_cache(page))
+		return 0;
+
 	if (!get_page_unless_zero(page)){
 		return 0;
 	}
+
 	ret = isolate_lru_page(page);
+	put_page(page);
+
 	if (!ret) { /* Success */
-		put_page(page);
 		inc_zone_page_state(page,
 				    NR_ISOLATED_ANON + page_is_file_cache(page));
 		return 1;
-	} else {
-		put_page(page);
 	}
 
 	return 0;
@@ -3776,7 +3784,8 @@ void reset_page_stat(struct list_head *wait_list, struct page *p)
 	}
 }
 
-static int do_lazy_migration(struct mm_struct *mm, pte_t *pte, pmd_t *pmd,
+static int do_lazy_migration(struct mm_struct *mm, struct vm_area_struct *vma,
+			     unsigned long addr, pte_t *pte, pmd_t *pmd,
 			     int MIG_TARGET)
 {
 	struct page *page;
@@ -3800,12 +3809,13 @@ static int do_lazy_migration(struct mm_struct *mm, pte_t *pte, pmd_t *pmd,
 	}
 	entry = pte_mkpresent(entry);
 	set_pte(pte, entry);
-
-	pte_unmap_unlock(pte, ptl);
+	flush_tlb_page(vma, addr);
 
 	page = pte_page(*pte);
 
 	list_add_tail(&page->lru, &source);
+
+	pte_unmap_unlock(pte, ptl);
 
 	if (MIG_TARGET == DRAM_MIG) {
 		if (!(dram_zone = find_dram_zone())) {
@@ -3817,7 +3827,6 @@ static int do_lazy_migration(struct mm_struct *mm, pte_t *pte, pmd_t *pmd,
 		if (ret) {
 			putback_movable_pages(&source);
 		} else {
-
 			list_move_tail(&page->mq, &dram_zone->mqvec.lists[page->level]);
 		}
 	}
@@ -3876,11 +3885,11 @@ static int handle_pte_fault(struct mm_struct *mm,
 		}
 		//ychoijy
 		if (pte_dram_mig(entry)) {
-			return do_lazy_migration(mm, pte, pmd, DRAM_MIG);
+			return do_lazy_migration(mm, vma, address, pte, pmd, DRAM_MIG);
 		}
 
 		if (pte_pcm_mig(entry)) {
-			return do_lazy_migration(mm, pte, pmd, PCM_MIG);
+			return do_lazy_migration(mm, vma, address, pte, pmd, PCM_MIG);
 		}
 		//eychoijy
 		if (pte_file(entry))
