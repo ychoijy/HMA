@@ -70,8 +70,6 @@
 #include "internal.h"
 
 //ychoijy
-#include <linux/mm_inline.h>
-
 #define DRAM_MIG	1
 #define PCM_MIG		2
 //eychoijy
@@ -3032,9 +3030,6 @@ static int do_swap_page(struct mm_struct *mm, struct vm_area_struct *vma,
 	delayacct_set_flag(DELAYACCT_PF_SWAPIN);
 	page = lookup_swap_cache(entry);
 	if (!page) {
-		//ychoijy
-		printk("swap routine and page is not in\n");
-		//eychoijy
 		page = swapin_readahead(entry,
 					GFP_HIGHUSER_MOVABLE, vma, address);
 		if (!page) {
@@ -3044,12 +3039,7 @@ static int do_swap_page(struct mm_struct *mm, struct vm_area_struct *vma,
 			 */
 			page_table = pte_offset_map_lock(mm, pmd, address, &ptl);
 			if (likely(pte_same(*page_table, orig_pte)))
-			//	ret = VM_FAULT_OOM;
-			//ychoijy
-			{
 				ret = VM_FAULT_OOM;
-				printk("VM_FAULT_OOM set!!!\n:");
-			}
 			delayacct_clear_flag(DELAYACCT_PF_SWAPIN);
 			goto unlock;
 		}
@@ -3695,28 +3685,35 @@ static int do_pmd_numa_page(struct mm_struct *mm, struct vm_area_struct *vma,
 #endif /* CONFIG_NUMA_BALANCING */
 
 //ychoijy
+
+static inline int page_is_file_cache(struct page *page)
+{
+	return !PageSwapBacked(page);
+}
+
 int prep_isolate_page(struct page *page)
 {
 	int ret;
 
-	if (!get_page_unless_zero(page)){
-		return 0;
-	}
-	/*
+	lru_add_drain_all();
+
 	if (PageHuge(page))
 		return 0;
 
 	if (page_mapcount(page) != 1 && page_is_file_cache(page))
 		return 0;
-*/
+
+	if (!get_page_unless_zero(page)){
+		return 0;
+	}
+
 	ret = isolate_lru_page(page);
+	put_page(page);
+
 	if (!ret) { /* Success */
-		put_page(page);
 		inc_zone_page_state(page,
 				    NR_ISOLATED_ANON + page_is_file_cache(page));
 		return 1;
-	} else {
-		put_page(page);
 	}
 
 	return 0;
@@ -3787,7 +3784,8 @@ void reset_page_stat(struct list_head *wait_list, struct page *p)
 	}
 }
 
-static int do_lazy_migration(struct mm_struct *mm, pte_t *pte, pmd_t *pmd,
+static int do_lazy_migration(struct mm_struct *mm, struct vm_area_struct *vma,
+			     unsigned long addr, pte_t *pte, pmd_t *pmd,
 			     int MIG_TARGET)
 {
 	struct page *page;
@@ -3805,13 +3803,13 @@ static int do_lazy_migration(struct mm_struct *mm, pte_t *pte, pmd_t *pmd,
 
 	if (MIG_TARGET == DRAM_MIG) {
 		entry = pte_mknotdrammigration(entry);
-	} else if (MIG_TARGET == PCM_MIG) {
-		printk("PCM_MIG routine entered!!\n");
+	}
+	if (MIG_TARGET == PCM_MIG) {
 		entry = pte_mknotpcmmigration(entry);
 	}
-
 	entry = pte_mkpresent(entry);
 	set_pte(pte, entry);
+	flush_tlb_page(vma, addr);
 
 	page = pte_page(*pte);
 
@@ -3819,43 +3817,37 @@ static int do_lazy_migration(struct mm_struct *mm, pte_t *pte, pmd_t *pmd,
 
 	pte_unmap_unlock(pte, ptl);
 
-	if (!(dram_zone = find_dram_zone())) {
+	if (MIG_TARGET == DRAM_MIG) {
+		if (!(dram_zone = find_dram_zone())) {
 			printk("%s%d : DRAM zone is not founded!!\n", __func__, __LINE__);
 			return 0;
-	}
-
-	if (!(pcm_zone = find_pcm_zone())) {
-			printk("%s%d : PCM zone is not founded!!\n", __func__, __LINE__);
-			return 0;
-	}
-
-	if (MIG_TARGET == DRAM_MIG) {
+		}
 		ret = migrate_pages(&source, alloc_migrate_to_dram,
 				    0, MIGRATE_SYNC, MR_NUMA_MISPLACED);
 		if (ret) {
 			putback_movable_pages(&source);
 		} else {
-			spin_lock(&dram_zone->mq_lock);
 			list_move_tail(&page->mq, &dram_zone->mqvec.lists[page->level]);
-			spin_unlock(&dram_zone->mq_lock);
 		}
 	}
 
 	if (MIG_TARGET == PCM_MIG) {
+		if (!(pcm_zone = find_pcm_zone())) {
+			printk("%s%d : PCM zone is not founded!!\n", __func__, __LINE__);
+			return 0;
+		}
 		ret = migrate_pages(&source, alloc_migrate_to_pcm,
 				    0, MIGRATE_SYNC, MR_NUMA_MISPLACED);
 		if (ret) {
 			putback_movable_pages(&source);
 		} else {
 			struct page *page;
-			spin_lock(&dram_zone->mq_lock);
+
 			list_for_each_entry(page, &source, lru) {
 				reset_page_stat(&pcm_zone->mqvec.wait_list, page);
 			}
-			spin_unlock(&dram_zone->mq_lock);
 		}
 	}
-
 	return 0;
 }
 //eychoijy
@@ -3893,11 +3885,11 @@ static int handle_pte_fault(struct mm_struct *mm,
 		}
 		//ychoijy
 		if (pte_dram_mig(entry)) {
-			return do_lazy_migration(mm, pte, pmd, DRAM_MIG);
+			return do_lazy_migration(mm, vma, address, pte, pmd, DRAM_MIG);
 		}
 
 		if (pte_pcm_mig(entry)) {
-			return do_lazy_migration(mm, pte, pmd, PCM_MIG);
+			return do_lazy_migration(mm, vma, address, pte, pmd, PCM_MIG);
 		}
 		//eychoijy
 		if (pte_file(entry))
