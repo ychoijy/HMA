@@ -108,18 +108,6 @@ static inline int pte_write(pte_t pte)
 	return pte_flags(pte) & _PAGE_RW;
 }
 
-//ychoijy
-static inline int pte_dram_mig(pte_t pte)
-{
-	return pte_flags(pte) & _PAGE_DRAM_MIG;
-}
-
-static inline int pte_pcm_mig(pte_t pte)
-{
-	return pte_flags(pte) & _PAGE_PCM_MIG;
-}
-//eychoijy
-
 static inline int pte_file(pte_t pte)
 {
 	return pte_flags(pte) & _PAGE_FILE;
@@ -197,38 +185,6 @@ static inline pte_t pte_clear_flags(pte_t pte, pteval_t clear)
 
 	return native_make_pte(v & ~clear);
 }
-
-//ychoijy
-static inline pte_t pte_mknotpresent(pte_t pte)
-{
-	return pte_clear_flags(pte, _PAGE_PRESENT);
-}
-
-static inline pte_t pte_mknotdrammigration(pte_t pte)
-{
-	return pte_clear_flags(pte, _PAGE_DRAM_MIG);
-}
-
-static inline pte_t pte_mknotpcmmigration(pte_t pte)
-{
-	return pte_clear_flags(pte, _PAGE_PCM_MIG);
-}
-
-static inline pte_t pte_mkpresent(pte_t pte)
-{
-	return pte_set_flags(pte, _PAGE_PRESENT);
-}
-
-static inline pte_t pte_mkdrammigration(pte_t pte)
-{
-	return pte_set_flags(pte, _PAGE_DRAM_MIG);
-}
-
-static inline pte_t pte_mkpcmmigration(pte_t pte)
-{
-	return pte_set_flags(pte, _PAGE_PCM_MIG);
-}
-//eychoijy
 
 static inline pte_t pte_mkclean(pte_t pte)
 {
@@ -477,6 +433,44 @@ pte_t *populate_extra_pte(unsigned long vaddr);
 #include <linux/mm_types.h>
 #include <linux/mmdebug.h>
 #include <linux/log2.h>
+
+//ychoijy
+static inline pte_t pte_mknotpresent(pte_t pte)
+{
+	return pte_clear_flags(pte, _PAGE_PRESENT);
+}
+static inline pte_t pte_mkpresent(pte_t pte)
+{
+	return pte_set_flags(pte, _PAGE_PRESENT);
+}
+
+static inline uint64_t pte_dram_mig(pte_t pte)
+{
+	return pte_flags(pte) & _PAGE_DRAM_MIG;
+}
+static inline pte_t pte_mknotdrammigration(pte_t pte)
+{
+	return pte_clear_flags(pte, _PAGE_DRAM_MIG);
+}
+static inline pte_t pte_mkdrammigration(pte_t pte)
+{
+	return pte_set_flags(pte, _PAGE_DRAM_MIG);
+}
+
+static inline uint64_t pte_pcm_mig(pte_t pte)
+{
+	return pte_flags(pte) & _PAGE_PCM_MIG;
+}
+static inline pte_t pte_mknotpcmmigration(pte_t pte)
+{
+	return pte_clear_flags(pte, _PAGE_PCM_MIG);
+}
+static inline pte_t pte_mkpcmmigration(pte_t pte)
+{
+	return pte_set_flags(pte, _PAGE_PCM_MIG);
+}
+//eychoijy
+
 
 static inline int pte_none(pte_t pte)
 {

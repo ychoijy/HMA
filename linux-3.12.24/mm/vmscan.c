@@ -2180,16 +2180,14 @@ int prep_migrate_to_pcm(struct page *page, struct vm_area_struct *vma,
 	pte_t *pte;
 	pte_t entry;
 	spinlock_t *ptl;
-	int ret = SWAP_AGAIN;
 
 	pte = page_check_address(page, mm, address, &ptl, 0);
 	if (!pte)
 		return 0;
 
-	entry = pte_mknotpresent(*pte);
-	set_pte(pte, entry);
-
-	entry = pte_mkpcmmigration(*pte);
+	entry = *pte;
+	entry = pte_mknotpresent(entry);
+	entry = pte_mkpcmmigration(entry);
 	set_pte(pte, entry);
 	flush_tlb_page(vma, address);
 
@@ -2223,7 +2221,6 @@ int try_to_get_pte(struct page *page)
 int page_migration(struct page *page)
 {
 	int ret;
-
 	if (PageAnon(page))
 		ret = try_to_get_pte(page);
 	else
@@ -2235,19 +2232,22 @@ int page_migration(struct page *page)
 static int migrate_mq_pages(unsigned long nr_to_reclaim, struct list_head *src)
 {
 	struct page *page;
-	unsigned long nr_taken = 1;
+	struct page *temp;
+	unsigned long nr_taken = 0;
 
-	list_for_each_entry(page, src, mq) {
+	list_for_each_entry_safe(page, temp, src, mq) {
 		if (nr_taken > nr_to_reclaim) {
 			break;
 		}
 
 		if (prep_isolate_page(page)) {
+			printk("@");
 			page_migration(page);
 			nr_taken++;
+		} else {
+			printk(".");
 		}
 	}
-	printk("Migration success DRAM->PCM:   nr_taken = %ld\n", nr_taken);
 	return nr_taken;
 }
 

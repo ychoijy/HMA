@@ -3695,8 +3695,6 @@ int prep_isolate_page(struct page *page)
 {
 	int ret;
 
-	lru_add_drain_all();
-
 	if (PageHuge(page))
 		return 0;
 
@@ -3811,31 +3809,34 @@ static int do_lazy_migration(struct mm_struct *mm, struct vm_area_struct *vma,
 	set_pte(pte, entry);
 	flush_tlb_page(vma, addr);
 
+	pte_unmap_unlock(pte, ptl);
+
 	page = pte_page(*pte);
 
 	list_add_tail(&page->lru, &source);
 
-	pte_unmap_unlock(pte, ptl);
-
-	if (MIG_TARGET == DRAM_MIG) {
-		if (!(dram_zone = find_dram_zone())) {
+	if (!(dram_zone = find_dram_zone())) {
 			printk("%s%d : DRAM zone is not founded!!\n", __func__, __LINE__);
 			return 0;
-		}
+	}
+	if (!(pcm_zone = find_pcm_zone())) {
+			printk("%s%d : PCM zone is not founded!!\n", __func__, __LINE__);
+			return 0;
+	}
+
+	if (MIG_TARGET == DRAM_MIG) {
 		ret = migrate_pages(&source, alloc_migrate_to_dram,
 				    0, MIGRATE_SYNC, MR_NUMA_MISPLACED);
 		if (ret) {
 			putback_movable_pages(&source);
 		} else {
+			spin_lock(&dram_zone->mq_lock);
 			list_move_tail(&page->mq, &dram_zone->mqvec.lists[page->level]);
+			spin_unlock(&dram_zone->mq_lock);
 		}
 	}
 
 	if (MIG_TARGET == PCM_MIG) {
-		if (!(pcm_zone = find_pcm_zone())) {
-			printk("%s%d : PCM zone is not founded!!\n", __func__, __LINE__);
-			return 0;
-		}
 		ret = migrate_pages(&source, alloc_migrate_to_pcm,
 				    0, MIGRATE_SYNC, MR_NUMA_MISPLACED);
 		if (ret) {
@@ -3844,10 +3845,13 @@ static int do_lazy_migration(struct mm_struct *mm, struct vm_area_struct *vma,
 			struct page *page;
 
 			list_for_each_entry(page, &source, lru) {
+				spin_lock(&dram_zone->mq_lock);
 				reset_page_stat(&pcm_zone->mqvec.wait_list, page);
+				spin_unlock(&dram_zone->mq_lock);
 			}
 		}
 	}
+
 	return 0;
 }
 //eychoijy

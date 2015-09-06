@@ -11,7 +11,7 @@
 #include <linux/mmzone.h>
 #include <linux/kthread.h>
 
-#define MAX_EXE		300
+#define MAX_EXE		500
 #define MQ_MIGRATE_TH	2
 #define DEMOTE_TH	2
 #define LIFE_TIME	100000
@@ -32,9 +32,10 @@ void print_victim(struct zone *dram_zone)
 {
 	unsigned long count;
 	struct page *p;
+	struct page *t;
 
 	count  = 0;
-	list_for_each_entry(p, &dram_zone->mqvec.victim_list, victim) {
+	list_for_each_entry_safe(p, t, &dram_zone->mqvec.victim_list, victim) {
 		if (p != NULL) {
 			count ++;
 		}
@@ -51,16 +52,19 @@ void print_mq(struct zone *dram_zone, struct zone *pcm_zone)
 	int i;
 	unsigned long count;
 	struct page *p;
+	struct page *t;
 
 	printk("====== PCM MQ =====\n");
 	for_each_mq(i) {
 		count = 0;
 		printk("level %d : ", i);
-		list_for_each_entry(p, &pcm_zone->mqvec.lists[i], mq) {
+		spin_lock(&dram_zone->mq_lock);
+		list_for_each_entry_safe(p, t, &pcm_zone->mqvec.lists[i], mq) {
 			if (p!= NULL) {
 				count++;
 			}
 		}
+		spin_unlock(&dram_zone->mq_lock);
 		printk("%ld\n", count);
 	}
 
@@ -69,11 +73,13 @@ void print_mq(struct zone *dram_zone, struct zone *pcm_zone)
 	for_each_mq(i) {
 		count = 0;
 		printk("level %d : ", i);
-		list_for_each_entry(p, &dram_zone->mqvec.lists[i], mq) {
+		spin_lock(&dram_zone->mq_lock);
+		list_for_each_entry_safe(p, t, &dram_zone->mqvec.lists[i], mq) {
 			if (p!= NULL) {
 				count++;
 			}
 		}
+		spin_unlock(&dram_zone->mq_lock);
 		printk("%ld\n", count);
 	}
 	printk("=======================\n");
@@ -83,13 +89,11 @@ void prep_migrate_to_dram(pte_t *pte)
 {
 	pte_t entry;
 
-	entry = pte_mknotpresent(*pte);
-	set_pte(pte, entry);
-
-	entry = pte_mkdrammigration(*pte);
+	entry = *pte;
+	entry = pte_mknotpresent(entry);
+	entry = pte_mkdrammigration(entry);
 	set_pte(pte, entry);
 }
-
 
 void check_promote(pte_t *pte, struct zone *dram_zone, struct zone *pcm_zone)
 {
@@ -109,8 +113,9 @@ void check_promote(pte_t *pte, struct zone *dram_zone, struct zone *pcm_zone)
 
 	if (pre == 0) {
 		if (!list_empty(&p->wait)) {	// wait_list -> DRAM or PCM
+			spin_lock(&dram_zone->mq_lock);
 			list_del_init(&p->wait);
-
+			spin_unlock(&dram_zone->mq_lock);
 			p->level = 0;
 			if (p->pre_level >= MQ_MIGRATE_TH) {	//  wait_list -> DRAM
 #ifdef DEBUG
@@ -128,7 +133,10 @@ void check_promote(pte_t *pte, struct zone *dram_zone, struct zone *pcm_zone)
 				printk("[%s] : Wait_list -> PCM\n",
 				       __func__);
 #endif
+
+				spin_lock(&dram_zone->mq_lock);
 				list_move_tail(&p->mq, &pcm_zone->mqvec.lists[0]);
+				spin_unlock(&dram_zone->mq_lock);
 			}
 		}
 	} else {
@@ -142,16 +150,21 @@ void check_promote(pte_t *pte, struct zone *dram_zone, struct zone *pcm_zone)
 			p->level = j-1;
 			if (p->level < MQ_LEVEL) {
 				if (!strcmp(zone->name, "Normal")){
+					spin_lock(&dram_zone->mq_lock);
 					list_move_tail(&p->mq,
 						       &dram_zone->mqvec.lists[p->level]);
+
+					spin_unlock(&dram_zone->mq_lock);
 				} else {
 					if ((j-1) >= MQ_MIGRATE_TH) {
 						if (prep_isolate_page(p)) {
 							prep_migrate_to_dram(pte);
 						}
 					} else {
+						spin_lock(&dram_zone->mq_lock);
 						list_move_tail(&p->mq,
-							&pcm_zone->mqvec.lists[p->level]);
+							       &pcm_zone->mqvec.lists[p->level]);
+						spin_unlock(&dram_zone->mq_lock);
 					}
 
 				}
@@ -165,8 +178,6 @@ void write_op(struct page *page, pte_t *pte){
 	pte_t reset_pte;
 
 	page->frq++;
-	//printk("%s:%d frq = %d\n", __func__, __LINE__,
-	//       page->frq);
 	reset_pte = pte_mkclean(*pte);
 	set_pte(pte, reset_pte);
 }
@@ -177,9 +188,6 @@ void read_op(struct page *page){
 		page->frq++;
 		page->read_count = 0;
 	}
-	//printk("%s:%d read_count = %d\n",__func__, __LINE__,
-       	//		page->read_count);
-
 }
 
 int pte_scan(struct mm_struct *mm, struct vm_area_struct *vma,
@@ -221,9 +229,7 @@ int pte_scan(struct mm_struct *mm, struct vm_area_struct *vma,
 
 	ptl = pte_lockptr(mm, pmd);
 	spin_lock(ptl);
-/*
- *  I will add page's information here
- */
+
 	page = pte_page(*pte);
 
 	if (pte_young(*pte)) {
@@ -276,15 +282,15 @@ int vm_scan(struct task_struct *task, struct zone *dram_zone, struct zone *pcm_z
 		return 0;
 	}
 
-	if (mm->mmap == NULL) {
+	vma = mm->mmap;
+
+	if (vma == NULL) {
 		mmput(mm);
-		printk("No vm_area\n");
+		printk("VMA is NULL!!\n");
 		return 0;
 	}
 
 	down_read(&mm->mmap_sem);
-
-	vma = mm->mmap;
 
 	while(vma){
 		for(addr = vma->vm_start ; addr < vma->vm_end; addr += PAGE_SIZE) {
@@ -292,12 +298,15 @@ int vm_scan(struct task_struct *task, struct zone *dram_zone, struct zone *pcm_z
 		}
 		vma = vma->vm_next;
 	}
+
 	up_read(&mm->mmap_sem);
 
+	mmput(mm);
 	return 1;
 }
 
-void demote_check(struct list_head *src, struct list_head *victim_list){
+void demote_check(struct zone *dram_zone,
+		  struct list_head *src, struct list_head *victim_list){
 	struct timeval cur_time;
 	struct page *page;
 	do_gettimeofday(&cur_time);
@@ -311,8 +320,10 @@ void demote_check(struct list_head *src, struct list_head *victim_list){
 
 		if (page->demote_count >= DEMOTE_TH) {
 			if (list_empty(&page->victim)) {
+				spin_lock(&dram_zone->mq_lock);
 				list_move_tail(&page->victim,
 					       victim_list);
+				spin_unlock(&dram_zone->mq_lock);
 			}
 		}
 	}
@@ -331,7 +342,8 @@ static int aging(void *data)
 	while (!kthread_should_stop()) {
 		for (level = 0; level < MQ_LEVEL; level++) {
 			if (!list_empty(&dram_mqvec->lists[level])) {
-				demote_check(&dram_mqvec->lists[level],
+				demote_check(dram_zone,
+					     &dram_mqvec->lists[level],
 					     &dram_mqvec->victim_list);
 			}
 		}
@@ -371,7 +383,7 @@ int main_process_scan(void)
 	mqvec_init(&dram_zone->mqvec);
 	mqvec_init(&pcm_zone->mqvec);
 
-	create_aging_th();
+//	create_aging_th();
 
 	while(count--) {
 		for_each_possible_cpu(cpu){
@@ -386,7 +398,7 @@ int main_process_scan(void)
 				print_mq(dram_zone, pcm_zone);
 			}
 		}
-		msleep(200);
+		msleep(100);
 	}
 
 	return 0;

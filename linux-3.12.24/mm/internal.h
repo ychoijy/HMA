@@ -85,6 +85,8 @@ extern unsigned long highest_memmap_pfn;
  */
 
 extern int prep_isolate_page(struct page *page);
+extern struct zone* find_dram_zone(void);
+extern struct zone* find_pcm_zone(void);
 
 /*
  * in mm/vmscan.c:
