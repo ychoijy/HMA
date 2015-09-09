@@ -662,6 +662,16 @@ static int fallback_migrate_page(struct address_space *mapping,
 	return migrate_page(mapping, newpage, page, mode);
 }
 
+//ychoijy
+void copy_my_values(struct page *page, struct page *newpage)
+{
+	newpage->level = page->level;
+	newpage->pre_level = page->pre_level;
+	newpage->read_count = page->read_count;
+	newpage->frq = page->frq;
+	newpage->demote_count = page->demote_count;
+}
+//eychoijy
 /*
  * Move a page to a newly allocated page
  * The page is locked and all ptes have been successfully removed.
@@ -716,6 +726,7 @@ static int move_to_new_page(struct page *newpage, struct page *page,
 		page->mapping = NULL;
 	}
 
+	copy_my_values(page, newpage);
 	unlock_page(newpage);
 
 	return rc;
@@ -863,6 +874,30 @@ out:
 	return rc;
 }
 
+//ychoijy
+void reset_page_stat(struct list_head *wait_list, struct page *p)
+{
+	p->read_count = 0;
+	p->frq = 0;
+
+	if (p->pre_level == 0) {
+		p->pre_level = p->level;
+	} else {
+		p->pre_level = (p->pre_level + p->level) / 2;
+	}
+	p->level = 0;
+
+	if (!list_empty(&p->mq)) {
+		list_del_init(&p->mq);
+		list_move_tail(&p->wait, wait_list);
+	}
+
+	if (!list_empty(&p->victim)) {
+		list_del_init(&p->victim);
+	}
+}
+//eychoijy
+
 /*
  * Obtain the lock on page, remove all ptes and migrate the page
  * to the newly allocated page in newpage.
@@ -873,6 +908,10 @@ static int unmap_and_move(new_page_t get_new_page, unsigned long private,
 	int rc = 0;
 	int *result = NULL;
 	struct page *newpage = get_new_page(page, private, &result);
+	//ychoijy
+	struct zone *dram_zone = NULL;
+	struct zone *pcm_zone = NULL;
+	//eychoijy
 
 	if (!newpage)
 		return -ENOMEM;
@@ -917,6 +956,25 @@ out:
 	 * then this will free the page.
 	 */
 	putback_lru_page(newpage);
+
+	//ychoijy
+	dram_zone = find_dram_zone();
+	pcm_zone = find_pcm_zone();
+
+	/* move pcm->dram */
+	if (private == DRAM_MIG) {
+		spin_lock(&dram_zone->mq_lock);
+		list_move_tail(&newpage->mq, &dram_zone->mqvec.lists[newpage->level]);
+		spin_unlock(&dram_zone->mq_lock);
+	}
+	/* move dram->pcm */
+	if (private == PCM_MIG) {
+		spin_lock(&dram_zone->mq_lock);
+		reset_page_stat(&pcm_zone->mqvec.wait_list, newpage);
+		spin_unlock(&dram_zone->mq_lock);
+	}
+	//eychoijy
+
 	if (result) {
 		if (rc)
 			*result = rc;

@@ -28,6 +28,26 @@ extern void flush_tlb_page(struct vm_area_struct *vma, unsigned long start);
 
 struct task_struct *task;
 
+void print_wait(struct zone *pcm_zone)
+{
+	unsigned long count;
+	struct page *p;
+	struct page *t;
+
+	count  = 0;
+	list_for_each_entry_safe(p, t, &pcm_zone->mqvec.wait_list, wait) {
+		if (p != NULL) {
+			count ++;
+		}
+	}
+
+	if (count != 0) {
+		printk("====== WAIT_LIST  =====\n");
+		printk(" wait num : %ld\n", count);
+		printk("=======================\n");
+	}
+}
+
 void print_victim(struct zone *dram_zone)
 {
 	unsigned long count;
@@ -47,6 +67,7 @@ void print_victim(struct zone *dram_zone)
 		printk("=======================\n");
 	}
 }
+
 void print_mq(struct zone *dram_zone, struct zone *pcm_zone)
 {
 	int i;
@@ -122,8 +143,8 @@ void check_promote(pte_t *pte, struct zone *dram_zone, struct zone *pcm_zone)
 				printk("[%s] : Wait_list -> DRAM\n",
 				       __func__);
 #endif
-				printk("p->prelevel = %d\n",
-				       p->pre_level);
+//				printk("p->prelevel = %d\n",
+//				       p->pre_level);
 				if (prep_isolate_page(p)) {
 					prep_migrate_to_dram(pte);
 				}
@@ -334,7 +355,6 @@ static int aging(void *data)
 	struct zone *dram_zone;
 	struct mqvec *dram_mqvec;
 	int level;
-	int iter = 0;
 
 	dram_zone = find_dram_zone();
 	dram_mqvec = &dram_zone->mqvec;
@@ -348,11 +368,6 @@ static int aging(void *data)
 			}
 		}
 
-		iter++;
-		if (iter >= 1000000) {
-			iter = 0;
-			print_victim(dram_zone);
-		}
 		usleep_range(SLEEP_TIME,SLEEP_TIME);
 	}
 	return 0;
@@ -383,7 +398,7 @@ int main_process_scan(void)
 	mqvec_init(&dram_zone->mqvec);
 	mqvec_init(&pcm_zone->mqvec);
 
-//	create_aging_th();
+	create_aging_th();
 
 	while(count--) {
 		for_each_possible_cpu(cpu){
@@ -395,7 +410,9 @@ int main_process_scan(void)
 				printk("%dth vm_scan start %s\n", count, curr->comm);
 				vm_scan(curr, dram_zone, pcm_zone);
 				put_task_struct(curr);
+				print_wait(pcm_zone);
 				print_mq(dram_zone, pcm_zone);
+				print_victim(dram_zone);
 			}
 		}
 		msleep(100);

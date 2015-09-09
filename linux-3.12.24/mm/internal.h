@@ -13,6 +13,11 @@
 
 #include <linux/mm.h>
 
+//ychoijy
+#define DRAM_MIG	10
+#define PCM_MIG		20
+//eychoijy
+
 void free_pgtables(struct mmu_gather *tlb, struct vm_area_struct *start_vma,
 		unsigned long floor, unsigned long ceiling);
 

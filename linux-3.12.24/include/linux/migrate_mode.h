@@ -10,7 +10,7 @@
 enum migrate_mode {
 	MIGRATE_ASYNC,
 	MIGRATE_SYNC_LIGHT,
-	MIGRATE_SYNC,
+	MIGRATE_SYNC
 };
 
 #endif		/* MIGRATE_MODE_H_INCLUDED */

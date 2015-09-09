@@ -69,11 +69,6 @@
 
 #include "internal.h"
 
-//ychoijy
-#define DRAM_MIG	1
-#define PCM_MIG		2
-//eychoijy
-
 #ifdef LAST_NID_NOT_IN_PAGE_FLAGS
 #warning Unfortunate NUMA and NUMA Balancing config, growing page-frame for last_nid.
 #endif
@@ -3695,11 +3690,13 @@ int prep_isolate_page(struct page *page)
 {
 	int ret;
 
-	if (PageHuge(page))
+	if (PageHuge(page)) {
 		return 0;
+	}
 
-	if (page_mapcount(page) != 1 && page_is_file_cache(page))
+	if (page_mapcount(page) != 1 && page_is_file_cache(page)){
 		return 0;
+	}
 
 	if (!get_page_unless_zero(page)){
 		return 0;
@@ -3752,59 +3749,21 @@ struct page *alloc_migrate_to_dram(struct page *page, unsigned long private,
 	return alloc_page(gfp_mask);
 }
 
-struct page *alloc_migrate_to_pcm(struct page *page, unsigned long private,
-				  int **resultp)
-{
-	gfp_t gfp_mask = GFP_USER | __GFP_MOVABLE;
-
-	return alloc_page(gfp_mask);
-}
-
-void reset_page_stat(struct list_head *wait_list, struct page *p)
-{
-	p->read_count = 0;
-	p->frq = 0;
-
-	if (p->pre_level == 0) {
-		p->pre_level = p->level;
-	} else {
-		p->pre_level = (p->pre_level + p->level) / 2;
-	}
-	p->level = 0;
-
-	if (!list_empty(&p->mq)) {
-		list_del_init(&p->mq);
-		list_move_tail(&p->wait, wait_list);
-	}
-
-	if (!list_empty(&p->victim)) {
-		list_del_init(&p->victim);
-	}
-}
-
 static int do_lazy_migration(struct mm_struct *mm, struct vm_area_struct *vma,
-			     unsigned long addr, pte_t *pte, pmd_t *pmd,
-			     int MIG_TARGET)
+			     unsigned long addr, pte_t *pte, pmd_t *pmd)
 {
 	struct page *page;
 	pte_t entry;
 	spinlock_t *ptl;
 	int ret;
-	struct zone *dram_zone = NULL;
-	struct zone *pcm_zone = NULL;
+
 	LIST_HEAD(source);
 
 	ptl = pte_lockptr(mm, pmd);
 	spin_lock(ptl);
 
 	entry = *pte;
-
-	if (MIG_TARGET == DRAM_MIG) {
-		entry = pte_mknotdrammigration(entry);
-	}
-	if (MIG_TARGET == PCM_MIG) {
-		entry = pte_mknotpcmmigration(entry);
-	}
+	entry = pte_mknotdrammigration(entry);
 	entry = pte_mkpresent(entry);
 	set_pte(pte, entry);
 	flush_tlb_page(vma, addr);
@@ -3815,43 +3774,11 @@ static int do_lazy_migration(struct mm_struct *mm, struct vm_area_struct *vma,
 
 	list_add_tail(&page->lru, &source);
 
-	if (!(dram_zone = find_dram_zone())) {
-			printk("%s%d : DRAM zone is not founded!!\n", __func__, __LINE__);
-			return 0;
+	ret = migrate_pages(&source, alloc_migrate_to_dram,
+			    DRAM_MIG, MIGRATE_SYNC, MR_NUMA_MISPLACED);
+	if (ret) {
+		putback_movable_pages(&source);
 	}
-	if (!(pcm_zone = find_pcm_zone())) {
-			printk("%s%d : PCM zone is not founded!!\n", __func__, __LINE__);
-			return 0;
-	}
-
-	if (MIG_TARGET == DRAM_MIG) {
-		ret = migrate_pages(&source, alloc_migrate_to_dram,
-				    0, MIGRATE_SYNC, MR_NUMA_MISPLACED);
-		if (ret) {
-			putback_movable_pages(&source);
-		} else {
-			spin_lock(&dram_zone->mq_lock);
-			list_move_tail(&page->mq, &dram_zone->mqvec.lists[page->level]);
-			spin_unlock(&dram_zone->mq_lock);
-		}
-	}
-
-	if (MIG_TARGET == PCM_MIG) {
-		ret = migrate_pages(&source, alloc_migrate_to_pcm,
-				    0, MIGRATE_SYNC, MR_NUMA_MISPLACED);
-		if (ret) {
-			putback_movable_pages(&source);
-		} else {
-			struct page *page;
-
-			list_for_each_entry(page, &source, lru) {
-				spin_lock(&dram_zone->mq_lock);
-				reset_page_stat(&pcm_zone->mqvec.wait_list, page);
-				spin_unlock(&dram_zone->mq_lock);
-			}
-		}
-	}
-
 	return 0;
 }
 //eychoijy
@@ -3889,13 +3816,9 @@ static int handle_pte_fault(struct mm_struct *mm,
 		}
 		//ychoijy
 		if (pte_dram_mig(entry)) {
-			return do_lazy_migration(mm, vma, address, pte, pmd, DRAM_MIG);
+			return do_lazy_migration(mm, vma, address, pte, pmd);
 		}
 
-		if (pte_pcm_mig(entry)) {
-			return do_lazy_migration(mm, vma, address, pte, pmd, PCM_MIG);
-		}
-		//eychoijy
 		if (pte_file(entry))
 			return do_nonlinear_fault(mm, vma, address,
 					pte, pmd, flags, entry);

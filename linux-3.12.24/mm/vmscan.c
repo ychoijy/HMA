@@ -2173,79 +2173,63 @@ static inline bool should_continue_reclaim(struct zone *zone,
 }
 
 //ychoijy
-int prep_migrate_to_pcm(struct page *page, struct vm_area_struct *vma,
-			 unsigned long address)
+struct page *alloc_migrate_to_pcm(struct page *page, unsigned long private,
+				  int **resultp)
 {
-	struct mm_struct *mm = vma->vm_mm;
-	pte_t *pte;
-	pte_t entry;
-	spinlock_t *ptl;
+	gfp_t gfp_mask = GFP_USER | __GFP_MOVABLE;
 
-	pte = page_check_address(page, mm, address, &ptl, 0);
-	if (!pte)
-		return 0;
-
-	entry = *pte;
-	entry = pte_mknotpresent(entry);
-	entry = pte_mkpcmmigration(entry);
-	set_pte(pte, entry);
-	flush_tlb_page(vma, address);
-
-	pte_unmap_unlock(pte, ptl);
-	return 0;
+	return alloc_page(gfp_mask);
 }
 
-int try_to_get_pte(struct page *page)
-{
-	struct anon_vma *anon_vma;
-	pgoff_t pgoff;
-	struct anon_vma_chain *avc;
-	int ret = 0;
-
-	anon_vma = page_lock_anon_vma_read(page);
-	if (!anon_vma)
-		return ret;
-
-	pgoff = page->index << (PAGE_CACHE_SHIFT - PAGE_SHIFT);
-	anon_vma_interval_tree_foreach(avc, &anon_vma->rb_root, pgoff, pgoff) {
-		struct vm_area_struct *vma = avc->vma;
-		unsigned long address;
-
-		address = vma_address(page, vma);
-		ret = prep_migrate_to_pcm(page, vma, address);
-	}
-	page_unlock_anon_vma_read(anon_vma);
-	return ret;
-}
-
-int page_migration(struct page *page)
+int direct_migrate_to_pcm(struct page *page)
 {
 	int ret;
-	if (PageAnon(page))
-		ret = try_to_get_pte(page);
-	else
-		ret = 0;
+
+	LIST_HEAD(source);
+
+	list_add_tail(&page->lru, &source);
+
+	ret = migrate_pages(&source, alloc_migrate_to_pcm,
+			    PCM_MIG, MIGRATE_SYNC, MR_NUMA_MISPLACED);
+	if (ret) {
+		putback_movable_pages(&source);
+	}
 
 	return ret;
 }
 
-static int migrate_mq_pages(unsigned long nr_to_reclaim, struct list_head *src)
+static int migrate_mq_pages(unsigned long nr_to_reclaim,
+			    struct list_head *src, int flag)
 {
 	struct page *page;
 	struct page *temp;
 	unsigned long nr_taken = 0;
 
-	list_for_each_entry_safe(page, temp, src, mq) {
-		if (nr_taken > nr_to_reclaim) {
-			break;
-		}
+	if (flag == 0) {
+		list_for_each_entry_safe(page, temp, src, victim) {
+			if (nr_taken > nr_to_reclaim) {
+				break;
+			}
 
-		if (prep_isolate_page(page)) {
-			printk("@");
-			page_migration(page);
-			nr_taken++;
-		} else {
-			printk(".");
+			if (prep_isolate_page(page)) {
+				if(!direct_migrate_to_pcm(page)) {
+					nr_taken++;
+				}
+			}
+		}
+	}
+
+	if (flag == 1) {
+		list_for_each_entry_safe(page, temp, src, mq) {
+			if (nr_taken > nr_to_reclaim) {
+				break;
+			}
+
+			if (prep_isolate_page(page)) {
+				if(!direct_migrate_to_pcm(page)) {
+					nr_taken++;
+				}
+			}
 		}
 	}
 	return nr_taken;
@@ -2258,13 +2242,14 @@ static int shrink_mq(struct mqvec *mqvec, struct scan_control *sc)
 	int level;
 
 	if (!list_empty(&mqvec->victim_list)) {
-		nr_taken += migrate_mq_pages(nr_to_reclaim, &mqvec->victim_list);
+		nr_taken += migrate_mq_pages(nr_to_reclaim,
+					     &mqvec->victim_list, 0);
 	}
 
-	for(level = 0; level < MQ_LEVEL && nr_taken <= nr_to_reclaim; level++) {
+	for (level = 0; level < MQ_LEVEL && nr_taken <= nr_to_reclaim; level++) {
 		if (!list_empty(&mqvec->lists[level])) {
 			nr_taken += migrate_mq_pages(nr_to_reclaim,
-						     &mqvec->lists[level]);
+						     &mqvec->lists[level], 1);
 		}
 	}
 	return nr_taken;
@@ -2276,11 +2261,8 @@ static void shrink_zone(struct zone *zone, struct scan_control *sc)
 	unsigned long nr_reclaimed, nr_scanned;
 
 	//ychoijy
-	int nr_taken = 0;
-
 	if (!strcmp(zone->name, "Normal")) {
-		nr_taken = shrink_mq(&zone->mqvec, sc);
-		printk("<<%d>> page migration....\n", nr_taken);
+		 shrink_mq(&zone->mqvec, sc);
 	} else {
 	//eychoijy
 		do {
