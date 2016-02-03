@@ -2041,10 +2041,31 @@ alloc_pages_vma(gfp_t gfp, int order, struct vm_area_struct *vma,
 	struct page *page;
 	unsigned int cpuset_mems_cookie;
 
+	//ychoijy
+	//struct mm_struct *mm;
+	//eychoijy
+
 retry_cpuset:
 	pol = get_vma_policy(current, vma, addr);
 	cpuset_mems_cookie = get_mems_allowed();
-
+/*
+	//ychoijy
+	if (vma) {
+		mm = vma->vm_mm;
+		if (mm) {
+			if(mm->sec_num) {
+				if (addr >= 0 && mm->dram_from >= 0 && mm->dram_to >= 0) {
+					if (mm->dram_from <= addr && mm->dram_to >= addr) {
+						gfp = gfp | __GFP_DRAM;
+						printk("addr: %lx, dram_from: %lx, dram_to: %lx\n",
+						       addr, mm->dram_from, mm->dram_to);
+					}
+				}
+			}
+		}
+	}
+	//eychoijy
+*/
 	if (unlikely(pol->mode == MPOL_INTERLEAVE)) {
 		unsigned nid;
 
@@ -2056,6 +2077,7 @@ retry_cpuset:
 
 		return page;
 	}
+
 	page = __alloc_pages_nodemask(gfp, order,
 				      policy_zonelist(gfp, pol, node),
 				      policy_nodemask(gfp, pol));

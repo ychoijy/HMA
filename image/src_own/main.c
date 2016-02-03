@@ -1,13 +1,15 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
-#define MAX_SIZE 99999999
+#define ONE_MEGA 1024*1024
+#define MAX_SIZE 10*ONE_MEGA
 
-int list[MAX_SIZE];
 
-int sorted[MAX_SIZE];
+int *list;
+int *sorted;
 
-void merge(int list[], int left, int mid, int right)
+void merge(int *list, int left, int mid, int right)
 
 {
 
@@ -27,19 +29,19 @@ void merge(int list[], int left, int mid, int right)
 
 	}
 
-	if(i>mid)	/* ³²ŸÆ ÀÖŽÂ ·¹ÄÚµåÀÇ ÀÏ°ý º¹»ç */
+	if(i>mid)
 
 		for(l=j; l<=right; l++)
 
 			sorted[k++] = list[l];
 
-	else	/* ³²ŸÆ ÀÖŽÂ ·¹ÄÚµåÀÇ ÀÏ°ý º¹»ç */
+	else
 
 		for(l=i; l<=mid; l++)
 
 			sorted[k++] = list[l];
 
-	/* ¹è¿­ sorted[]ÀÇ ž®œºÆ®žŠ ¹è¿­ list[]·Î Àçº¹»ç */
+
 
 	for(l=left; l<=right; l++)
 
@@ -47,7 +49,7 @@ void merge(int list[], int left, int mid, int right)
 
 }
 
-//
+
 
 void merge_sort(int list[], int left, int right)
 
@@ -57,13 +59,13 @@ void merge_sort(int list[], int left, int right)
 
 	if(left<right){
 
-		mid = (left+right)/2;     /* ž®œºÆ®ÀÇ ±Õµî ºÐÇÒ */
+		mid = (left+right)/2;
 
-		merge_sort(list, left, mid);    /* ºÎºÐ ž®œºÆ® Á€·Ä */
+		merge_sort(list, left, mid);
 
-		merge_sort(list, mid+1, right); /* ºÎºÐ ž®œºÆ® Á€·Ä */
+		merge_sort(list, mid+1, right);
 
-		merge(list, left, mid, right);    /* ÇÕºŽ */
+		merge(list, left, mid, right);
 
 	}
 
@@ -74,19 +76,21 @@ void main()
 {
 
 	int i, n = MAX_SIZE;
-	int *list;
+
+	srand(time(NULL));
 
 	list = (int *)malloc(sizeof(int)*n);
+	sorted = (int *)malloc(sizeof(int)*n);
 
-	for(i=0; i<n; i++)      	/* ³­Œö »ýŒº ¹× Ãâ·Â */
-
-		list[i] = rand()%n;/*³­Œö ¹ß»ý ¹üÀ§ 0~MAX_SIZE*/
+	for (i=0; i<n; i++) {
+		list[i] = rand()%n;
+	}
 
 	merge_sort(list, 0, n-1);
-
+/*
 	for(i=0; i<n; i++)
-
 		printf("%d\n", list[i]);
-
+*/
 	free(list);
+	free(sorted);
 }

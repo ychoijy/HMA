@@ -5,7 +5,7 @@
 #include <signal.h>
 
 #define MEMORY_ALLOC_NUM	80
-#define MEMORY_ALLOC_SIZE	20*1024*1024
+#define MEMORY_ALLOC_SIZE	10*1024*1024
 #define LOOP_NUM		200
 #define SLEEP_TIME		180
 

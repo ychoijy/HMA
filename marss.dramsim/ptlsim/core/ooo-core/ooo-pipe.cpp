@@ -2106,7 +2106,10 @@ int ReorderBufferEntry::commit() {
                 thread.reset_fetch_unit(physreg->data);
                 thread.thread_stats.issue.result.branch_mispredict++;
             }
-            assert(physreg->data);
+            //assert(physreg->data);
+			//ychoijy
+            assert(physreg->data||isbarrier(uop.opcode));
+			//eychoijy
             ctx.eip = physreg->data;
         } else {
             assert(!isbranch(uop.opcode));

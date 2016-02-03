@@ -693,11 +693,8 @@ MainMemory :: MainMemory (int type0, int type1, float rankProp, Addr defaultRank
   //mbchoi
   znSize[0] = atrans.zoneLimit;
   znSize[1] = atrans.totRanks - atrans.zoneLimit;
-  //znSize[0] = 4;
-  //znSize[1] = 1;
-  //embchoi
-  //mbchoi
-  //printf("[mbchoi]: NCHANNELS:%d RANKS_PCH:%d totRanks:%d rankProp:%lf znSize[0]:%llu znSize[1]:%llu\n", NCHANNELS, RANKS_PCH, atrans.totRanks, rankProp, znSize[0], znSize[1]);
+  //znSize[0] = 1;
+  //znSize[1] = 4;
   //embchoi
 
   if(type0 != type1)

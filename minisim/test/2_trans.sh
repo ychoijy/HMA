@@ -11,4 +11,3 @@
 cat def/core0.trc | python modify.py > def/core1.trc
 cat def/core1.trc > def/core0.trc
 rm -rf def/core1.trc
-

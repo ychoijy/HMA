@@ -8,5 +8,6 @@ defRankSize 536870912 # 0.5GB ranks
 # Zones
 zone dram
 zone pcm
+#ratio 0.5
 ratio 0.8
 #ratio 0.8

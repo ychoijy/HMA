@@ -217,7 +217,7 @@ create_elf_tables(struct linux_binprm *bprm, struct elfhdr *exec,
 	} while (0)
 
 #ifdef ARCH_DLINFO
-	/* 
+	/*
 	 * ARCH_DLINFO must come first so PPC can do its special alignment of
 	 * AUXV.
 	 * update AT_VECTOR_SIZE_ARCH if the number of NEW_AUX_ENT() in
@@ -432,7 +432,7 @@ static unsigned long load_elf_interp(struct elfhdr *interp_elf_ex,
 	error = -EIO;
 	if (retval != size) {
 		if (retval < 0)
-			error = retval;	
+			error = retval;
 		goto out_close;
 	}
 
@@ -588,13 +588,24 @@ static int load_elf_binary(struct linux_binprm *bprm)
 		struct elfhdr elf_ex;
 		struct elfhdr interp_elf_ex;
 	} *loc;
-
+	/*
+	//ychoiy
+	int retval_sec;
+	unsigned int size_sec;
+	struct elf_shdr *elf_spnt, *elf_shdata, *str_tab = NULL;
+	int j;
+	int str_tab_idx = -1;
+	char * str_tab_p = NULL;
+	int retval_str_tab;
+	char* str_tab_debug;
+	//eychoijy
+*/
 	loc = kmalloc(sizeof(*loc), GFP_KERNEL);
 	if (!loc) {
 		retval = -ENOMEM;
 		goto out_ret;
 	}
-	
+
 	/* Get the exec-header */
 	loc->elf_ex = *((struct elfhdr *)bprm->buf);
 
@@ -629,7 +640,33 @@ static int load_elf_binary(struct linux_binprm *bprm)
 			retval = -EIO;
 		goto out_free_ph;
 	}
+/*
+	//ychoijy
+	if (loc->elf_ex.e_shentsize != sizeof(struct elf_shdr))
+		goto out;
 
+	if (loc->elf_ex.e_shnum < 1 ||
+	    loc->elf_ex.e_shnum > 65536U / sizeof(struct elf_shdr))
+	{
+		printk("%s:%d info:loc->elf_ex.e_shnum exception\n", __func__, __LINE__);
+	}
+	size_sec = loc->elf_ex.e_shnum * sizeof(struct elf_shdr);
+	retval_sec = -ENOMEM;
+	elf_shdata = kmalloc(size_sec, GFP_KERNEL);
+	if (!elf_shdata)
+		goto out;
+
+	retval_sec = kernel_read(bprm->file, loc->elf_ex.e_shoff,
+				 (char *)elf_shdata, size_sec);
+	if (retval_sec != size_sec) {
+		if (retval_sec >= 0)
+			retval_sec = -EIO;
+		goto out_free_sh;
+	}
+	elf_spnt = elf_shdata;
+	str_tab_idx = loc->elf_ex.e_shstrndx;
+	//eychoijy
+*/
 	elf_ppnt = elf_phdata;
 	elf_bss = 0;
 	elf_brk = 0;
@@ -646,7 +683,7 @@ static int load_elf_binary(struct linux_binprm *bprm)
 			 * is an a.out format binary
 			 */
 			retval = -ENOEXEC;
-			if (elf_ppnt->p_filesz > PATH_MAX || 
+			if (elf_ppnt->p_filesz > PATH_MAX ||
 			    elf_ppnt->p_filesz < 2)
 				goto out_free_ph;
 
@@ -744,7 +781,7 @@ static int load_elf_binary(struct linux_binprm *bprm)
 		send_sig(SIGKILL, current, 0);
 		goto out_free_dentry;
 	}
-	
+
 	current->mm->start_stack = bprm->p;
 
 	/* Now we do a little grungy work by mmapping the ELF image into
@@ -759,7 +796,7 @@ static int load_elf_binary(struct linux_binprm *bprm)
 
 		if (unlikely (elf_brk > elf_bss)) {
 			unsigned long nbyte;
-	            
+
 			/* There was a PT_LOAD segment with p_memsz > p_filesz
 			   before this one. Map anonymous pages, if needed,
 			   and clear the area.  */
@@ -818,7 +855,70 @@ static int load_elf_binary(struct linux_binprm *bprm)
 			load_bias = ELF_PAGESTART(ELF_ET_DYN_BASE - vaddr);
 #endif
 		}
+/*
+		//ychoijy
+		str_tab = elf_shdata;
+		str_tab = str_tab + str_tab_idx;
+		str_tab_p = kmalloc(str_tab->sh_size, GFP_KERNEL);
+		if (!str_tab_p)
+			goto out;
+		retval_str_tab = kernel_read(bprm->file, str_tab->sh_offset,
+					     (char *)str_tab_p, str_tab->sh_size);
 
+		if (retval_str_tab != str_tab->sh_size)	{
+			if (retval_str_tab >= 0)
+				retval_str_tab = -EIO;
+			printk("%s:%d info: got error in kernel_read of string table\n",
+			       __func__, __LINE__);
+			goto out_free_sh;
+		}
+
+		if(!strcmp(current->comm, "main"))
+		{
+			printk("%s:%d info: ", __func__, __LINE__);
+			for (str_tab_debug = str_tab_p; str_tab_debug < str_tab_p
+			     + str_tab->sh_size; str_tab_debug++)
+			{
+				printk("%c",*str_tab_debug);
+			}
+			printk(" len:%llx\n", str_tab->sh_size);
+		}
+
+		current->mm->sec_num = loc->elf_ex.e_shnum;
+		current->mm->secinfos = kmalloc(loc->elf_ex.e_shnum * sizeof(struct secinfo_struct), GFP_KERNEL);
+		//init the range of dram section
+		current->mm->dram_from = -1;
+		current->mm->dram_to = -1;
+		for (j=0, elf_spnt = elf_shdata; j < loc->elf_ex.e_shnum; j++, elf_spnt++) {
+			current->mm->secinfos[j].id = (unsigned int)j;
+			current->mm->secinfos[j].vaddr_start = elf_spnt->sh_addr;
+			current->mm->secinfos[j].vaddr_end =  elf_spnt->sh_addr + elf_spnt->sh_size;
+			current->mm->secinfos[j].accessed_num = 0;
+			if (!strcmp(str_tab_p+elf_spnt->sh_name, "DRAM_STATIC")) {
+				strcpy(current->mm->secinfos[j].name, str_tab_p+elf_spnt->sh_name);
+				current->mm->dram_from = elf_spnt->sh_addr;
+				current->mm->dram_to = elf_spnt->sh_addr+elf_spnt->sh_size - 1;
+				printk("%s:%d info: dram_from:%lx dram_to:%lx\n",__func__, __LINE__,
+				       current->mm->dram_from, current->mm->dram_to);
+			}
+
+			if (!strcmp(current->comm, "main")) {
+				printk("%s:%d info: id:%u name:%s start:%llx end:%llx\n",
+				       __func__, __LINE__, j, str_tab_p+elf_spnt->sh_name,
+				       elf_spnt->sh_addr, elf_spnt->sh_addr + elf_spnt->sh_size);
+				if (j == str_tab_idx) {
+					printk("%s:%d info: id:%u this section is string table\n",
+					       __func__, __LINE__, j);
+				}
+				if (strcmp(str_tab_p+elf_spnt->sh_name, "DRAM_STATIC") == 0) {
+					printk("%s:%d info: id:%u this section is DRAM_STATIC from:%llx to:%llx\n",
+					       __func__, __LINE__, j, elf_spnt->sh_addr,
+					       elf_spnt->sh_addr+elf_spnt->sh_size);
+				}
+			}
+		}
+		//eychoijy
+*/
 		error = elf_map(bprm->file, load_bias + vaddr, elf_ppnt,
 				elf_prot, elf_flags, 0);
 		if (BAD_ADDR(error)) {
@@ -1006,6 +1106,13 @@ out_free_interp:
 out_free_ph:
 	kfree(elf_phdata);
 	goto out;
+/*
+	//ychoijy
+out_free_sh:
+	kfree(elf_shdata);
+	goto out;
+	//eychoijy
+*/
 }
 
 /* This is really simpleminded and specialized - we are loading an
@@ -1291,7 +1398,7 @@ static void fill_elf_note_phdr(struct elf_phdr *phdr, int sz, loff_t offset)
 	return;
 }
 
-static void fill_note(struct memelfnote *note, const char *name, int type, 
+static void fill_note(struct memelfnote *note, const char *name, int type,
 		unsigned int sz, void *data)
 {
 	note->name = name;
@@ -1343,7 +1450,7 @@ static int fill_psinfo(struct elf_prpsinfo *psinfo, struct task_struct *p,
 {
 	const struct cred *cred;
 	unsigned int i, len;
-	
+
 	/* first copy the parameters from user space */
 	memset(psinfo, 0, sizeof(struct elf_prpsinfo));
 
@@ -1377,7 +1484,7 @@ static int fill_psinfo(struct elf_prpsinfo *psinfo, struct task_struct *p,
 	SET_GID(psinfo->pr_gid, from_kgid_munged(cred->user_ns, cred->gid));
 	rcu_read_unlock();
 	strncpy(psinfo->pr_fname, p->comm, sizeof(psinfo->pr_fname));
-	
+
 	return 0;
 }
 
@@ -1779,8 +1886,8 @@ static int elf_dump_thread_status(long signr, struct elf_thread_status *t)
 	t->num_notes = 0;
 
 	fill_prstatus(&t->prstatus, p, signr);
-	elf_core_copy_task_regs(p, &t->prstatus.pr_reg);	
-	
+	elf_core_copy_task_regs(p, &t->prstatus.pr_reg);
+
 	fill_note(&t->notes[0], "CORE", NT_PRSTATUS, sizeof(t->prstatus),
 		  &(t->prstatus));
 	t->num_notes++;
@@ -1801,7 +1908,7 @@ static int elf_dump_thread_status(long signr, struct elf_thread_status *t)
 		t->num_notes++;
 		sz += notesize(&t->notes[2]);
 	}
-#endif	
+#endif
 	return sz;
 }
 
@@ -2058,7 +2165,7 @@ static int elf_core_dump(struct coredump_params *cprm)
 
 	/*
 	 * We no longer stop all VM operations.
-	 * 
+	 *
 	 * This is because those proceses that could possibly change map_count
 	 * or the mmap / vma pages are now blocked in do_exit on current
 	 * finishing this core dump.
@@ -2067,7 +2174,7 @@ static int elf_core_dump(struct coredump_params *cprm)
 	 * the map_count or the pages allocated. So no possibility of crashing
 	 * exists while dumping the mm->vm_next areas to the core file.
 	 */
-  
+
 	/* alloc memory for large data structures: too large to be on stack */
 	elf = kmalloc(sizeof(*elf), GFP_KERNEL);
 	if (!elf)

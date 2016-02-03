@@ -577,11 +577,10 @@ void __init zone_sizes_init(void)
 		(1UL * 1024 * 1024 * 1024 >> PAGE_SHIFT);
 #endif
 	//ychoijy
-	max_zone_pfns[ZONE_PCM]		=
+	max_zone_pfns[ZONE_PCM]	=
 		(2UL * 1024 * 1024 * 1024 >> PAGE_SHIFT);
 
 	max_zone_pfns[ZONE_NORMAL]	= max_low_pfn;
-	//max_zone_pfns[ZONE_NORMAL]	= max_low_pfn;
 #ifdef CONFIG_HIGHMEM
 	max_zone_pfns[ZONE_HIGHMEM]	= max_pfn;
 #endif

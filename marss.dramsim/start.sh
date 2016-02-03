@@ -1,1 +1,1 @@
-/home/ychoijy/HMA/marss.dramsim/qemu/qemu-system-x86_64 -m 4096 -initrd /home/ychoijy/HMA/image/ramdisk.img -L /home/ychoijy/HMA/marss.dramsim/qemu/pc-bios/ -simconfig /home/ychoijy/HMA/marss.dramsim/simconfig -kernel /home/ychoijy/HMA/linux-3.12.24/arch/x86/boot/bzImage -append "root=/dev/ram init=/bin/ash"
+qemu/qemu-system-x86_64 -hda ./../image/ubuntu-14.04.3-server-amd64.img -m 4096 -simconfig /home/ychoijy/HMA/marss.dramsim/simconfig  

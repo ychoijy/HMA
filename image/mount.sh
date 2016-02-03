@@ -5,5 +5,4 @@
 # Created Time: Tue Jan  7 23:12:56 2014
 #########################################################################
 #!/bin/bash
-umount /home/ychoijy/HMA/image/ramdisk.img
-mount -o loop /home/ychoijy/HMA/image/ramdisk.img /home/ychoijy/HMA/image/rootfs
+sudo mount -o loop /home/ychoijy/HMA/image/ramdisk.img /home/ychoijy/HMA/image/rootfs

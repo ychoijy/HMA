@@ -336,6 +336,17 @@ struct mm_rss_stat {
 };
 
 struct kioctx_table;
+
+//ychoijy
+struct secinfo_struct {
+	unsigned int id;
+	unsigned long long vaddr_start;
+	unsigned long long vaddr_end;
+	unsigned int accessed_num;
+	char name[32];
+};
+//eychoijy
+
 struct mm_struct {
 	struct vm_area_struct * mmap;		/* list of VMAs */
 	struct rb_root mm_rb;
@@ -457,6 +468,12 @@ struct mm_struct {
 	bool tlb_flush_pending;
 #endif
 	struct uprobes_state uprobes_state;
+
+	//ychoijy
+	unsigned int sec_num;
+	struct secinfo_struct* secinfos;
+	unsigned long dram_from, dram_to;
+	//eychoijy
 };
 
 /* first nid will either be a valid NID or one of these values */

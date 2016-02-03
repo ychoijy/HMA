@@ -1,4 +1,4 @@
--machine single_core
+-machine shared_l2
 -corefreq 2700000000
 -dramsim-pwd              /home/ychoijy/HMA/DRAMSim2
 -dramsim-device-ini-file  ini/my_dram.ini
